@@ -1,0 +1,114 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+.pnp
+.pnp.js
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# ========================
+# Next.js (web)
+# ========================
+web/.next/
+web/out/
+web/build/
+
+# ========================
+# Prisma
+# ========================
+web/.prisma/
+web/generated/
+web/prisma/dev.db
+web/prisma/dev.db-journal
+web/dev.db
+web/dev.db-journal
+**/*.db
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal
+
+# ========================
+# Prisma native binaries
+# ========================
+**/*.node
+
+# ========================
+# Expo / React Native (mobile)
+# ========================
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/expo-env.d.ts
+
+# Generated native folders (Expo prebuild)
+mobile/ios/
+mobile/android/
+mobile/.kotlin/
+
+# Metro bundler
+.metro-health-check*
+
+# ========================
+# Build Outputs
+# ========================
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ========================
+# Uploads / User Content
+# ========================
+web/public/uploads/
+
+# ========================
+# Native / Mobile Certs & Keys
+# ========================
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# ========================
+# Debug Logs
+# ========================
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Editor
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========================
+# Claude / AI tools
+# ========================
+.claude/
+
+# ========================
+# Misc
+# ========================
+app-example
