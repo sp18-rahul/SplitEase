@@ -516,6 +516,10 @@ export default function Home() {
             <Wallet size={22} className="mb-1" />
             Home
           </Link>
+          <Link href="/expenses" className="nav-bottom-item">
+            <Receipt size={22} className="mb-1" />
+            Expenses
+          </Link>
           <Link href="/groups/new" className="nav-bottom-item">
             <Plus size={22} className="mb-1" />
             New Group
