@@ -168,11 +168,24 @@ export default function GroupDetail() {
     } catch { Alert.alert("Error", "Failed to duplicate expense"); }
   };
 
-  const handleUpiPay = (upiId: string, amount: number, toName: string) => {
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&am=${amount.toFixed(2)}&cu=INR`;
-    Linking.canOpenURL(upiUrl).then((supported) => {
-      if (supported) Linking.openURL(upiUrl);
-      else Alert.alert("UPI Pay", `Pay ${toName} via UPI ID:\n${upiId}\n\nAmount: ₹${amount.toFixed(2)}`);
+  const UPI_APPS = [
+    { name: "GPay", scheme: "gpay://upi/pay", color: "#166534", bg: "#f0fdf4", border: "#86efac" },
+    { name: "PhonePe", scheme: "phonepe://pay", color: "#7e22ce", bg: "#faf5ff", border: "#d8b4fe" },
+    { name: "Paytm", scheme: "paytmmp://pay", color: "#1d4ed8", bg: "#eff6ff", border: "#93c5fd" },
+    { name: "BHIM", scheme: "bhim://pay", color: "#c2410c", bg: "#fff7ed", border: "#fdba74" },
+  ];
+
+  const handleUpiAppPay = (upiId: string, amount: number, toName: string, scheme: string, appName: string) => {
+    const url = `${scheme}?pa=${encodeURIComponent(upiId)}&am=${amount.toFixed(2)}&cu=INR&pn=${encodeURIComponent(toName)}&tn=SplitEase+settlement`;
+    Linking.canOpenURL(url).then((supported) => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Alert.alert(
+          `${appName} not found`,
+          `${appName} doesn't appear to be installed.\n\nPay ${toName} manually:\nUPI ID: ${upiId}\nAmount: ₹${amount.toFixed(2)}`
+        );
+      }
     });
   };
 
@@ -255,12 +268,32 @@ export default function GroupDetail() {
                     <TouchableOpacity style={[styles.payBtn, { paddingVertical: r.s(10), borderRadius: r.s(10) }]} onPress={() => setSettleModal(t)}>
                       <Text style={[styles.payBtnText, { fontSize: r.fs(14) }]}>✓ Mark as Paid</Text>
                     </TouchableOpacity>
+                    {!toUpiId && (
+                      <Text style={{ fontSize: r.fs(11), color: "#94a3b8", textAlign: "center", paddingVertical: r.s(4) }}>
+                        💳 Ask {getMemberName(t.toUserId)} to add their UPI ID for quick pay
+                      </Text>
+                    )}
                     {toUpiId && (
-                      <TouchableOpacity
-                        style={[styles.payBtn, { paddingVertical: r.s(10), borderRadius: r.s(10), backgroundColor: "#fef9c3", borderColor: "#fde047" }]}
-                        onPress={() => handleUpiPay(toUpiId, t.amount, getMemberName(t.toUserId))}>
-                        <Text style={[styles.payBtnText, { fontSize: r.fs(14), color: "#854d0e" }]}>💳 Pay via UPI</Text>
-                      </TouchableOpacity>
+                      <View style={{ gap: r.s(6) }}>
+                        {/* UPI ID label */}
+                        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#fef9c3", borderRadius: r.s(8), padding: r.s(7), borderWidth: 1, borderColor: "#fde047" }}>
+                          <Text style={{ fontSize: r.fs(11), fontWeight: "600", color: "#854d0e", flex: 1 }} numberOfLines={1}>
+                            💳 {toUpiId}
+                          </Text>
+                        </View>
+                        {/* App buttons row */}
+                        <View style={{ flexDirection: "row", gap: r.s(6) }}>
+                          {UPI_APPS.map(({ name, scheme, color, bg, border }) => (
+                            <TouchableOpacity
+                              key={name}
+                              style={{ flex: 1, paddingVertical: r.s(8), borderRadius: r.s(8), backgroundColor: bg, borderWidth: 1, borderColor: border, alignItems: "center" }}
+                              onPress={() => handleUpiAppPay(toUpiId, t.amount, getMemberName(t.toUserId), scheme, name)}
+                            >
+                              <Text style={{ fontSize: r.fs(11), fontWeight: "700", color }}>{name}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
                     )}
                   </>
                 )}

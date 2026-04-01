@@ -105,6 +105,7 @@ export default function GroupDetail() {
   const [remindToast, setRemindToast] = useState("");
   const [sendingRemindId, setSendingRemindId] = useState<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState<string | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addMemberEmail, setAddMemberEmail] = useState("");
   const [addMemberName, setAddMemberName] = useState("");
@@ -652,14 +653,42 @@ export default function GroupDetail() {
                                 <Check style={{ width: 16, height: 16 }} />
                                 Mark as Paid
                               </button>
+                              {!toUpiId && (
+                                <p style={{ flex: 1, fontSize: 11, color: '#94a3b8', margin: 0, textAlign: 'center', alignSelf: 'center' }}>
+                                  💳 Ask {getMemberName(t.toUserId)} to add their UPI ID in profile for quick pay
+                                </p>
+                              )}
                               {toUpiId && (
-                                <a
-                                  href={`upi://pay?pa=${encodeURIComponent(toUpiId)}&am=${t.amount.toFixed(2)}&cu=INR&tn=SplitEase+settlement`}
-                                  className="btn-secondary"
-                                  style={{ flex: 1, fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-                                >
-                                  💳 Pay via UPI
-                                </a>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  {/* UPI ID with copy */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef9c3', border: '1px solid #fde047', borderRadius: 10, padding: '6px 10px' }}>
+                                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#854d0e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      💳 {toUpiId}
+                                    </span>
+                                    <button
+                                      onClick={() => { navigator.clipboard.writeText(toUpiId); setCopiedUpi(toUpiId); setTimeout(() => setCopiedUpi(null), 2000); }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#854d0e', padding: 0, whiteSpace: 'nowrap', flexShrink: 0 }}
+                                    >
+                                      {copiedUpi === toUpiId ? '✓ Copied!' : '📋 Copy'}
+                                    </button>
+                                  </div>
+                                  {/* App-specific UPI buttons */}
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    {[
+                                      { name: 'GPay', scheme: 'gpay://upi/pay', bg: '#f0fdf4', color: '#166534', border: '#86efac' },
+                                      { name: 'PhonePe', scheme: 'phonepe://pay', bg: '#faf5ff', color: '#7e22ce', border: '#d8b4fe' },
+                                      { name: 'Paytm', scheme: 'paytmmp://pay', bg: '#eff6ff', color: '#1d4ed8', border: '#93c5fd' },
+                                    ].map(({ name, scheme, bg, color, border }) => (
+                                      <a
+                                        key={name}
+                                        href={`${scheme}?pa=${encodeURIComponent(toUpiId)}&am=${t.amount.toFixed(2)}&cu=INR&pn=${encodeURIComponent(getMemberName(t.toUserId))}&tn=SplitEase+settlement`}
+                                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '7px 4px', background: bg, border: `1px solid ${border}`, borderRadius: 10, color, fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+                                      >
+                                        {name}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </>
                           );
@@ -1252,9 +1281,56 @@ export default function GroupDetail() {
                 </div>
               </div>
 
-              <p style={{ fontSize: 14, color: '#475569', marginBottom: 20, textAlign: 'center' }}>
+              <p style={{ fontSize: 14, color: '#475569', marginBottom: 16, textAlign: 'center' }}>
                 This will record that you've paid <strong>{sym}{settleTransaction.amount.toFixed(0)}</strong> to <strong>{getMemberName(settleTransaction.toUserId)}</strong> and update the group balance.
               </p>
+
+              {/* UPI Payment Section */}
+              {(() => {
+                const toMemberUpiId = group?.members.find(m => m.user.id === settleTransaction.toUserId)?.user?.upiId;
+                if (!toMemberUpiId) return null;
+                const upiParams = `pa=${encodeURIComponent(toMemberUpiId)}&am=${settleTransaction.amount.toFixed(2)}&cu=INR&pn=${encodeURIComponent(getMemberName(settleTransaction.toUserId))}&tn=SplitEase+settlement`;
+                return (
+                  <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: '#854d0e', margin: '0 0 10px 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      💳 Pay via UPI App
+                    </p>
+                    {/* UPI ID + copy */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #fde047', borderRadius: 10, padding: '8px 12px', marginBottom: 10 }}>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {toMemberUpiId}
+                      </span>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(toMemberUpiId); setCopiedUpi(toMemberUpiId); setTimeout(() => setCopiedUpi(null), 2000); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#854d0e', padding: 0, whiteSpace: 'nowrap', flexShrink: 0 }}
+                      >
+                        {copiedUpi === toMemberUpiId ? '✅ Copied!' : '📋 Copy ID'}
+                      </button>
+                    </div>
+                    {/* App buttons */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      {[
+                        { name: 'GPay', scheme: 'gpay://upi/pay', bg: '#f0fdf4', color: '#166534', border: '#86efac', emoji: '💚' },
+                        { name: 'PhonePe', scheme: 'phonepe://pay', bg: '#faf5ff', color: '#7e22ce', border: '#d8b4fe', emoji: '💜' },
+                        { name: 'Paytm', scheme: 'paytmmp://pay', bg: '#eff6ff', color: '#1d4ed8', border: '#93c5fd', emoji: '🔵' },
+                        { name: 'BHIM', scheme: 'bhim://pay', bg: '#fff7ed', color: '#c2410c', border: '#fdba74', emoji: '🇮🇳' },
+                      ].map(({ name, scheme, bg, color, border, emoji }) => (
+                        <a
+                          key={name}
+                          href={`${scheme}?${upiParams}`}
+                          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 4px', background: bg, border: `1px solid ${border}`, borderRadius: 12, color, fontWeight: 700, fontSize: 11, textDecoration: 'none', gap: 2 }}
+                        >
+                          <span style={{ fontSize: 18 }}>{emoji}</span>
+                          <span>{name}</span>
+                        </a>
+                      ))}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 11, color: '#92400e', textAlign: 'center' }}>
+                      After paying, tap "Confirm" below to update the group balance.
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setShowSettleModal(false)} className="btn-secondary" style={{ flex: 1 }}>
