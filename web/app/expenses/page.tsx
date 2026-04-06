@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Wallet, Plus, User, Receipt, TrendingUp, TrendingDown,
-  ChevronRight, Search, X, SlidersHorizontal,
+  ChevronRight, Search, X, SlidersHorizontal, Bell, Settings,
 } from "lucide-react";
 import { AppShell } from "@/app/components/AppSidebar";
 
@@ -135,63 +135,79 @@ export default function ExpensesPage() {
   const activeFilters =
     (groupFilter !== null ? 1 : 0) + (categoryFilter !== null ? 1 : 0);
 
+  const initial = session?.user?.name?.charAt(0).toUpperCase() || "?";
+
   if (loading) {
     return (
-      <div className="app-page" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 48, height: 48, border: "4px solid #c7d2fe", borderTopColor: "#4f46e5", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-          <p style={{ color: "#4f46e5", fontWeight: 600 }}>Loading expenses…</p>
+      <AppShell activeTab="expenses">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F0EEFF" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 48, height: 48, border: "4px solid #EDE9FE", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+            <p style={{ color: "#7C3AED", fontWeight: 600 }}>Loading expenses…</p>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      </AppShell>
     );
   }
 
   return (
     <AppShell activeTab="expenses">
-    <div className="app-page" style={{ minHeight: "100vh", background: "#F8F5FF" }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    <div style={{ minHeight: "100vh", background: "#F0EEFF" }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .se-exp-deskhead { display: none; }
+        .se-exp-mobhead  { display: flex; }
+        .se-exp-content  { padding: 0 16px 100px; }
+        @media (min-width: 1024px) {
+          .se-exp-deskhead { display: flex !important; }
+          .se-exp-mobhead  { display: none !important; }
+          .se-exp-content  { padding: 20px 32px 60px !important; max-width: 800px; }
+        }
+      `}</style>
 
-      {/* Desktop top bar */}
-      <div className="hidden lg:flex" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 32px 0", marginBottom: 8 }}>
+      {/* ── DESKTOP HEADER ── */}
+      <div className="se-exp-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0f172a", margin: 0 }}>Expenses</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>All your expenses across every group</p>
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Expenses</h1>
+          <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>All your expenses across every group</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Bell size={17} color="#64748b" /></button>
+          <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Settings size={17} color="#64748b" /></button>
+          <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #7C3AED, #5B21B6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>{initial}</Link>
         </div>
       </div>
 
-      <div className="app-shell animate-fadeIn lg:px-8 lg:py-4">
+      {/* ── MOBILE HEADER ── */}
+      <div className="se-exp-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0 }}>Expenses</h1>
+          <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>All your expenses</p>
+        </div>
+      </div>
 
-        {/* Hero banner */}
-        <div className="summary-card" style={{ marginBottom: 24, marginTop: 16 }}>
-          <div style={{ position: "relative", zIndex: 10 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
-              My Expenses
-            </p>
-            <p style={{ fontSize: "clamp(28px, 7vw, 44px)", fontWeight: 900, color: "white", margin: "0 0 4px", lineHeight: 1.1 }}>
-              {sym()}{(stats?.totalMyShare ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </p>
-            <p style={{ fontSize: 13, color: "#a5b4fc", marginBottom: 20 }}>my total share across all groups</p>
+      <div className="se-exp-content">
 
-            {/* Three mini stats */}
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1, background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>I Paid</p>
-                <p style={{ fontSize: 18, fontWeight: 900, color: "white", margin: 0 }}>
-                  {sym()}{(stats?.totalPaidByMe ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </p>
+        {/* ── HERO STAT CARD ── */}
+        <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 20, background: "linear-gradient(130deg, #A78BFA 0%, #7C3AED 30%, #4F46E5 65%, #38BDF8 100%)", boxShadow: "0 8px 32px rgba(124,58,237,0.25)", padding: "20px 22px 24px" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 6px" }}>My Expenses</p>
+          <p style={{ fontSize: 40, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1.5px", lineHeight: 1 }}>
+            {sym()}{(stats?.totalMyShare ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+          </p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "0 0 18px" }}>my total share across all groups</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[
+              { label: "I Paid", value: `${sym()}${(stats?.totalPaidByMe ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` },
+              { label: "Net Balance", value: `${(stats?.netBalance ?? 0) >= 0 ? "+" : ""}${sym()}${Math.abs(stats?.netBalance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: (stats?.netBalance ?? 0) >= 0 ? "#6EE7B7" : "#FCA5A5" },
+              { label: "Total Bills", value: String(stats?.count ?? 0) },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px", border: "1px solid rgba(255,255,255,0.15)" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px" }}>{label}</p>
+                <p style={{ fontSize: 17, fontWeight: 900, color: color || "white", margin: 0 }}>{value}</p>
               </div>
-              <div style={{ flex: 1, background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Net Balance</p>
-                <p style={{ fontSize: 18, fontWeight: 900, color: (stats?.netBalance ?? 0) >= 0 ? "#6ee7b7" : "#fda4af", margin: 0 }}>
-                  {(stats?.netBalance ?? 0) >= 0 ? "+" : ""}{sym()}{Math.abs(stats?.netBalance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </p>
-              </div>
-              <div style={{ flex: 1, background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#a5b4fc", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Total Bills</p>
-                <p style={{ fontSize: 18, fontWeight: 900, color: "white", margin: 0 }}>{stats?.count ?? 0}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -210,8 +226,8 @@ export default function ExpensesPage() {
                   onClick={() => setFilter(f)}
                   style={{
                     flexShrink: 0, padding: "5px 12px", borderRadius: 20,
-                    border: `1.5px solid ${active ? "#4f46e5" : "#e2e8f0"}`,
-                    background: active ? "#4f46e5" : "white",
+                    border: `1.5px solid ${active ? "#7C3AED" : "#e2e8f0"}`,
+                    background: active ? "#7C3AED" : "white",
                     color: active ? "white" : "#64748b",
                     fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
                   }}
@@ -227,9 +243,9 @@ export default function ExpensesPage() {
               style={{
                 flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
                 padding: "5px 12px", borderRadius: 20,
-                border: `1.5px solid ${activeFilters > 0 ? "#4f46e5" : "#e2e8f0"}`,
-                background: activeFilters > 0 ? "#eef2ff" : "white",
-                color: activeFilters > 0 ? "#4f46e5" : "#64748b",
+                border: `1.5px solid ${activeFilters > 0 ? "#7C3AED" : "#e2e8f0"}`,
+                background: activeFilters > 0 ? "#EDE9FE" : "white",
+                color: activeFilters > 0 ? "#7C3AED" : "#64748b",
                 fontSize: 12, fontWeight: 700, cursor: "pointer",
               }}
             >
@@ -240,7 +256,7 @@ export default function ExpensesPage() {
 
           {/* Expandable filter panel */}
           {showFilters && (
-            <div style={{ background: "white", borderRadius: 16, border: "1px solid #e0e7ff", padding: 16, marginBottom: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ background: "white", borderRadius: 16, border: "1px solid #EDE9FE", padding: 16, marginBottom: 10, display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Group filter */}
               {groups.length > 1 && (
                 <div>
@@ -248,13 +264,13 @@ export default function ExpensesPage() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     <button
                       onClick={() => setGroupFilter(null)}
-                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === null ? "#4f46e5" : "#e2e8f0"}`, background: groupFilter === null ? "#eef2ff" : "white", color: groupFilter === null ? "#4338ca" : "#64748b" }}
+                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === null ? "#7C3AED" : "#e2e8f0"}`, background: groupFilter === null ? "#EDE9FE" : "white", color: groupFilter === null ? "#6D28D9" : "#64748b" }}
                     >All</button>
                     {groups.map((g) => (
                       <button
                         key={g.id}
                         onClick={() => setGroupFilter(groupFilter === g.id ? null : g.id)}
-                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === g.id ? "#4f46e5" : "#e2e8f0"}`, background: groupFilter === g.id ? "#eef2ff" : "white", color: groupFilter === g.id ? "#4338ca" : "#64748b" }}
+                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === g.id ? "#7C3AED" : "#e2e8f0"}`, background: groupFilter === g.id ? "#EDE9FE" : "white", color: groupFilter === g.id ? "#6D28D9" : "#64748b" }}
                       >
                         {g.emoji} {g.name}
                       </button>
@@ -270,13 +286,13 @@ export default function ExpensesPage() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     <button
                       onClick={() => setCategoryFilter(null)}
-                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === null ? "#4f46e5" : "#e2e8f0"}`, background: categoryFilter === null ? "#eef2ff" : "white", color: categoryFilter === null ? "#4338ca" : "#64748b" }}
+                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === null ? "#7C3AED" : "#e2e8f0"}`, background: categoryFilter === null ? "#EDE9FE" : "white", color: categoryFilter === null ? "#6D28D9" : "#64748b" }}
                     >All</button>
                     {categories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
-                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === cat ? "#4f46e5" : "#e2e8f0"}`, background: categoryFilter === cat ? "#eef2ff" : "white", color: categoryFilter === cat ? "#4338ca" : "#64748b" }}
+                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === cat ? "#7C3AED" : "#e2e8f0"}`, background: categoryFilter === cat ? "#EDE9FE" : "white", color: categoryFilter === cat ? "#6D28D9" : "#64748b" }}
                       >
                         {CATEGORY_EMOJIS[cat] || "💡"} {cat.charAt(0).toUpperCase() + cat.slice(1)}
                       </button>
@@ -316,7 +332,7 @@ export default function ExpensesPage() {
 
         {/* Expense list grouped by date */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 24px", background: "white", borderRadius: 20, border: "1px solid #e0e7ff" }}>
+          <div style={{ textAlign: "center", padding: "48px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE" }}>
             <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>🔍</span>
             <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
               {expenses.length === 0 ? "No expenses yet" : "No matching expenses"}
@@ -360,7 +376,7 @@ export default function ExpensesPage() {
                             cursor: "pointer",
                           }}
                           onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLDivElement).style.borderColor = "#c7d2fe";
+                            (e.currentTarget as HTMLDivElement).style.borderColor = "#C4B5FD";
                             (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px rgba(79,70,229,0.08)";
                           }}
                           onMouseLeave={(e) => {
@@ -374,7 +390,7 @@ export default function ExpensesPage() {
                               <img src={expense.receiptUrl} alt="Receipt" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                             </div>
                           ) : (
-                            <div style={{ width: 46, height: 46, borderRadius: 14, background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
+                            <div style={{ width: 46, height: 46, borderRadius: 14, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
                               {CATEGORY_EMOJIS[expense.category || "other"] || "💡"}
                             </div>
                           )}
@@ -444,6 +460,7 @@ export default function ExpensesPage() {
         )}
 
       </div>
+
     </div>
     </AppShell>
   );

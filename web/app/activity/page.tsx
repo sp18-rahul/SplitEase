@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/app/components/AppSidebar";
+import { Bell, Settings } from "lucide-react";
 
 const PURPLE = "#7C3AED";
 
@@ -132,10 +133,12 @@ export default function ActivityPage() {
 
   const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : null;
 
+  const initial = session?.user?.name?.charAt(0).toUpperCase() || "?";
+
   if (loading) {
     return (
       <AppShell activeTab="activity">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F8F5FF" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F0EEFF" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
             <div style={{ width: 48, height: 48, border: "4px solid #ede9fe", borderTopColor: PURPLE, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
             <p style={{ color: PURPLE, fontWeight: 600, fontSize: 14 }}>Loading activity…</p>
@@ -148,59 +151,68 @@ export default function ActivityPage() {
 
   return (
     <AppShell activeTab="activity">
-      <div style={{ background: "#F8F5FF", minHeight: "100vh" }}>
-        <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <div style={{ background: "#F0EEFF", minHeight: "100vh" }}>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+          .se-act-deskhead { display: none; }
+          .se-act-mobhead  { display: flex; }
+          .se-act-filters  { padding: 16px 16px 0; }
+          .se-act-content  { padding: 0 16px 100px; }
+          @media (min-width: 1024px) {
+            .se-act-deskhead { display: flex !important; }
+            .se-act-mobhead  { display: none !important; }
+            .se-act-filters  { padding: 20px 32px 0 !important; }
+            .se-act-content  { padding: 0 32px 60px !important; max-width: 760px; }
+          }
+        `}</style>
 
-        {/* Page header */}
-        <div style={{ padding: "24px 20px 0" }} className="lg:px-8">
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20 }}>
-            <div>
-              <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>Activity</h1>
-              <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
-                {activityItems.length} events across {groups.length} group{groups.length !== 1 ? "s" : ""}
-              </p>
-            </div>
+        {/* ── DESKTOP HEADER ── */}
+        <div className="se-act-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Activity</h1>
+            <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>
+              {activityItems.length} event{activityItems.length !== 1 ? "s" : ""} · {groups.length} group{groups.length !== 1 ? "s" : ""}
+            </p>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "7px 14px", background: "#F0FDF4", borderRadius: 20, border: "1px solid #BBF7D0" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#16A34A" }}>{activityItems.filter(i => i.type === "expense").length} expenses</span>
+            </div>
+            <div style={{ padding: "7px 14px", background: "#F5F3FF", borderRadius: 20, border: "1px solid #DDD6FE" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: PURPLE }}>{activityItems.filter(i => i.type === "settlement").length} settlements</span>
+            </div>
+            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Bell size={17} color="#64748b" /></button>
+            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Settings size={17} color="#64748b" /></button>
+            <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>{initial}</Link>
+          </div>
+        </div>
 
-          {/* Filter tabs */}
+        {/* ── MOBILE HEADER ── */}
+        <div className="se-act-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0 }}>Activity</h1>
+            <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>{activityItems.length} events across {groups.length} group{groups.length !== 1 ? "s" : ""}</p>
+          </div>
+        </div>
+
+        {/* ── FILTERS ── */}
+        <div className="se-act-filters">
           <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
             {(["all", "expenses", "settlements"] as FilterTab[]).map(f => {
-              const labels: Record<FilterTab, string> = { all: "All", expenses: "Expenses", settlements: "Settlements" };
+              const labels: Record<FilterTab, string> = { all: "All Activity", expenses: "Expenses", settlements: "Settlements" };
               const active = filter === f;
               return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    flexShrink: 0, padding: "6px 16px", borderRadius: 20,
-                    border: `1.5px solid ${active ? PURPLE : "#e2e8f0"}`,
-                    background: active ? PURPLE : "white",
-                    color: active ? "white" : "#64748b",
-                    fontSize: 13, fontWeight: 700, cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
+                <button key={f} onClick={() => setFilter(f)} style={{ flexShrink: 0, padding: "7px 18px", borderRadius: 20, border: `1.5px solid ${active ? PURPLE : "#e2e8f0"}`, background: active ? `linear-gradient(135deg, ${PURPLE}, #5B21B6)` : "white", color: active ? "white" : "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s", boxShadow: active ? `0 3px 10px ${PURPLE}33` : "none" }}>
                   {labels[f]}
                 </button>
               );
             })}
-
-            {/* Group filter pills */}
             {groups.length > 1 && (
               <>
                 <div style={{ width: 1, background: "#e2e8f0", margin: "4px 4px" }} />
                 {groups.map(g => (
-                  <button
-                    key={g.id}
-                    onClick={() => setGroupFilter(groupFilter === g.id ? null : g.id)}
-                    style={{
-                      flexShrink: 0, padding: "6px 14px", borderRadius: 20,
-                      border: `1.5px solid ${groupFilter === g.id ? PURPLE : "#e2e8f0"}`,
-                      background: groupFilter === g.id ? "#EDE9FE" : "white",
-                      color: groupFilter === g.id ? PURPLE : "#64748b",
-                      fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    }}
-                  >
+                  <button key={g.id} onClick={() => setGroupFilter(groupFilter === g.id ? null : g.id)} style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${groupFilter === g.id ? PURPLE : "#e2e8f0"}`, background: groupFilter === g.id ? "#EDE9FE" : "white", color: groupFilter === g.id ? PURPLE : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     {g.emoji || "💰"} {g.name}
                   </button>
                 ))}
@@ -209,8 +221,8 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Activity list */}
-        <div style={{ padding: "0 20px 100px" }} className="lg:px-8 lg:max-w-2xl">
+        {/* ── ACTIVITY LIST ── */}
+        <div className="se-act-content">
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE" }}>
               <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>🔔</span>

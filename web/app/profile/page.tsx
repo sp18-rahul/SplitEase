@@ -115,11 +115,19 @@ export default function ProfilePage() {
     }
   };
 
+  const PURPLE     = "#7C3AED";
+  const PURPLE_MID = "#6D28D9";
+  const PAGE_BG    = "#F0EEFF";
+  const initial    = session?.user?.name?.charAt(0).toUpperCase() || "?";
+
   if (status === "loading") {
     return (
-      <div className="app-page flex items-center justify-center min-h-screen">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-      </div>
+      <AppShell activeTab="profile">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F0EEFF" }}>
+          <div style={{ width: 44, height: 44, border: "4px solid #EDE9FE", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </AppShell>
     );
   }
 
@@ -185,26 +193,52 @@ export default function ProfilePage() {
 
   return (
     <AppShell activeTab="profile">
-    <div className="app-page pt-4" style={{ minHeight: "100vh", background: "#F8F5FF" }}>
-      {/* Desktop top bar */}
-      <div className="hidden lg:flex" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 32px 0", marginBottom: 8 }}>
+    <div style={{ minHeight: "100vh", background: PAGE_BG }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .se-pro-deskhead { display: none; }
+        .se-pro-mobhead  { display: flex; }
+        .se-pro-content  { padding: 0 16px 100px; }
+        .se-pro-signout  { display: block; }
+        @media (min-width: 1024px) {
+          .se-pro-deskhead { display: flex !important; }
+          .se-pro-mobhead  { display: none !important; }
+          .se-pro-content  { padding: 24px 32px 60px !important; max-width: 640px; }
+          .se-pro-signout  { display: none !important; }
+        }
+      `}</style>
+
+      {/* ── DESKTOP HEADER ── */}
+      <div className="se-pro-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0f172a", margin: 0 }}>My Profile</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>Manage your account and preferences</p>
+          <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>My Profile</h1>
+          <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>Manage your account and preferences</p>
+        </div>
+        <button onClick={() => signOut({ callbackUrl: "/auth/signin" })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 12, background: "#FFF1F2", border: "1px solid #FECDD3", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#E11D48" }}>
+          <LogOut size={15} /> Sign Out
+        </button>
+      </div>
+
+      {/* ── MOBILE HEADER ── */}
+      <div className="se-pro-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0 }}>My Profile</h1>
+          <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>Account settings</p>
         </div>
       </div>
 
-      <div className="app-shell animate-fadeIn lg:px-8 lg:py-4">
+      <div className="se-pro-content">
 
-        {/* Profile Hero */}
-        <div className="summary-card" style={{ marginBottom: 24 }}>
+        {/* ── PROFILE HERO CARD ── */}
+        <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 20, background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 60%, #6366F1 100%)", boxShadow: "0 10px 36px rgba(124,58,237,0.28)", padding: "22px 22px 24px" }}>
           <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 20 }}>
             {/* Avatar */}
             <div style={{
               width: 80,
               height: 80,
               borderRadius: 24,
-              background: 'linear-gradient(135deg, #818cf8, #7c3aed)',
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(8px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -212,7 +246,8 @@ export default function ProfilePage() {
               fontWeight: 900,
               fontSize: 32,
               flexShrink: 0,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              border: '2px solid rgba(255,255,255,0.3)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
             }}>
               {session?.user?.name?.charAt(0).toUpperCase() || "?"}
             </div>
@@ -287,39 +322,39 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats */}
-        <div className="stats-grid" style={{ marginBottom: 24 }}>
-          <div className="card card-sm" style={{ textAlign: 'center' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-              <Users style={{ width: 16, height: 16, color: '#4f46e5' }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+          <div style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "16px 12px", textAlign: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <Users style={{ width: 16, height: 16, color: PURPLE }} />
             </div>
-            <p style={{ fontSize: 'clamp(16px, 4vw, 22px)', fontWeight: 900, color: '#0f172a', margin: 0 }}>{groups.length}</p>
-            <p style={{ fontSize: 11, fontWeight: 500, color: '#64748b', margin: 0 }}>Groups</p>
+            <p style={{ fontSize: "clamp(16px, 4vw, 22px)", fontWeight: 900, color: "#0f172a", margin: 0 }}>{groups.length}</p>
+            <p style={{ fontSize: 11, fontWeight: 500, color: "#64748b", margin: 0 }}>Groups</p>
           </div>
-          <div className="card card-sm" style={{ textAlign: 'center' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-              <TrendingDown style={{ width: 16, height: 16, color: '#e11d48' }} />
+          <div style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "16px 12px", textAlign: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "#fff1f2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <TrendingDown style={{ width: 16, height: 16, color: "#e11d48" }} />
             </div>
-            <p style={{ fontSize: 'clamp(14px, 3.5vw, 22px)', fontWeight: 900, color: '#e11d48', margin: 0 }}>₹{youOwe.toFixed(0)}</p>
-            <p style={{ fontSize: 11, fontWeight: 500, color: '#64748b', margin: 0 }}>You Owe</p>
+            <p style={{ fontSize: "clamp(14px, 3.5vw, 22px)", fontWeight: 900, color: "#e11d48", margin: 0 }}>₹{youOwe.toFixed(0)}</p>
+            <p style={{ fontSize: 11, fontWeight: 500, color: "#64748b", margin: 0 }}>You Owe</p>
           </div>
-          <div className="card card-sm" style={{ textAlign: 'center' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-              <TrendingUp style={{ width: 16, height: 16, color: '#16a34a' }} />
+          <div style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "16px 12px", textAlign: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px" }}>
+              <TrendingUp style={{ width: 16, height: 16, color: "#16a34a" }} />
             </div>
-            <p style={{ fontSize: 'clamp(14px, 3.5vw, 22px)', fontWeight: 900, color: '#16a34a', margin: 0 }}>₹{youGet.toFixed(0)}</p>
-            <p style={{ fontSize: 11, fontWeight: 500, color: '#64748b', margin: 0 }}>Owed to You</p>
+            <p style={{ fontSize: "clamp(14px, 3.5vw, 22px)", fontWeight: 900, color: "#16a34a", margin: 0 }}>₹{youGet.toFixed(0)}</p>
+            <p style={{ fontSize: 11, fontWeight: 500, color: "#64748b", margin: 0 }}>Owed to You</p>
           </div>
         </div>
 
         {/* Account Section */}
-        <div className="card" style={{ marginBottom: 16, overflow: 'hidden' }}>
+        <div style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 16, overflow: "hidden" }}>
           <div style={{ padding: 4 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '12px 16px 8px' }}>Account</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", padding: "12px 16px 8px" }}>Account</p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <User style={{ width: 16, height: 16, color: '#4f46e5' }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <User style={{ width: 16, height: 16, color: PURPLE }} />
                 </div>
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>Display Name</p>
@@ -332,16 +367,16 @@ export default function ProfilePage() {
                   setEditingName(true);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                style={{ fontSize: 12, fontWeight: 600, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ fontSize: 12, fontWeight: 600, color: PURPLE, background: "none", border: "none", cursor: "pointer" }}
               >
                 Edit
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Mail style={{ width: 16, height: 16, color: '#7c3aed' }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Mail style={{ width: 16, height: 16, color: PURPLE }} />
                 </div>
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', margin: 0 }}>Email Address</p>
@@ -368,11 +403,11 @@ export default function ProfilePage() {
                           value={newUpiId}
                           onChange={e => setNewUpiId(e.target.value)}
                           placeholder="yourname@upi"
-                          style={{ fontSize: 13, border: '1.5px solid #4f46e5', borderRadius: 8, padding: '4px 8px', outline: 'none', color: '#0f172a', width: 160 }}
+                          style={{ fontSize: 13, border: `1.5px solid ${PURPLE}`, borderRadius: 8, padding: "4px 8px", outline: "none", color: "#0f172a", width: 160 }}
                           onKeyDown={e => { if (e.key === 'Enter') handleSaveUpi(); if (e.key === 'Escape') setEditingUpi(false); }}
                           autoFocus
                         />
-                        <button onClick={handleSaveUpi} disabled={savingUpi} style={{ padding: 4, background: '#4f46e5', borderRadius: 6, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button onClick={handleSaveUpi} disabled={savingUpi} style={{ padding: 4, background: PURPLE, borderRadius: 6, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Save style={{ width: 12, height: 12, color: 'white' }} />
                         </button>
                         <button onClick={() => setEditingUpi(false)} style={{ padding: 4, background: '#f1f5f9', borderRadius: 6, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -406,7 +441,7 @@ export default function ProfilePage() {
 
         {/* Groups Section */}
         {groups.length > 0 && (
-          <div className="card" style={{ marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 16, overflow: "hidden" }}>
             <div style={{ padding: 4 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '12px 16px 8px' }}>
                 Your Groups ({groups.length})
@@ -432,7 +467,7 @@ export default function ProfilePage() {
               {groups.length > 5 && (
                 <Link
                   href="/"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px', fontSize: 14, fontWeight: 600, color: '#4f46e5', textDecoration: 'none' }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "12px 16px", fontSize: 14, fontWeight: 600, color: PURPLE, textDecoration: "none" }}
                 >
                   View all {groups.length} groups
                 </Link>
@@ -442,7 +477,7 @@ export default function ProfilePage() {
         )}
 
         {/* Sign Out */}
-        <div className="card lg:hidden" style={{ overflow: 'hidden' }}>
+        <div className="se-pro-signout" style={{ background: "white", borderRadius: 18, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", overflow: "hidden" }}>
           <div style={{ padding: 4 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '12px 16px 8px' }}>Actions</p>
             <button

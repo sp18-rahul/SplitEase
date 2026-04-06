@@ -375,27 +375,37 @@ export default function GroupDetail() {
     }
   };
 
+  const PURPLE     = "#7C3AED";
+  const PURPLE_MID = "#6D28D9";
+  const PAGE_BG    = "#F0EEFF";
+  const initial    = session?.user?.name?.charAt(0).toUpperCase() || "?";
+
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F8F5FF" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 44, height: 44, border: "4px solid #EDE9FE", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          <p style={{ color: "#7C3AED", fontWeight: 600, fontSize: 15 }}>Loading group details...</p>
+      <AppShell activeTab="groups">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: PAGE_BG }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 44, height: 44, border: "4px solid #EDE9FE", borderTopColor: PURPLE, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: PURPLE, fontWeight: 600, fontSize: 15 }}>Loading group details...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!group) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F8F5FF" }}>
-        <div className="card card-lg px-10 py-12 text-center max-w-md">
-          <AlertCircle style={{ width: 64, height: 64, color: '#fb7185', margin: '0 auto 16px' }} />
-          <p style={{ fontSize: 24, fontWeight: 900, color: '#1e293b', marginBottom: 8 }}>Group not found</p>
-          <p style={{ color: '#64748b', marginBottom: 24 }}>The requested group does not exist or you don't have access.</p>
-          <Link href="/" className="btn-primary">Return to Dashboard</Link>
+      <AppShell activeTab="groups">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: PAGE_BG }}>
+          <div style={{ background: "white", borderRadius: 24, padding: "40px 32px", textAlign: "center", maxWidth: 400, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+            <AlertCircle style={{ width: 64, height: 64, color: "#fb7185", margin: "0 auto 16px" }} />
+            <p style={{ fontSize: 24, fontWeight: 900, color: "#1e293b", marginBottom: 8 }}>Group not found</p>
+            <p style={{ color: "#64748b", marginBottom: 24 }}>The requested group does not exist or you don't have access.</p>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Return to Dashboard</Link>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -409,60 +419,108 @@ export default function GroupDetail() {
 
   return (
     <AppShell activeTab="groups">
-    <div style={{ background: "#F8F5FF", minHeight: "100vh" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }} className="lg:max-w-3xl">
+    <div style={{ background: PAGE_BG, minHeight: "100vh" }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .se-gid-deskhead { display: none; }
+        .se-gid-mobhead  { display: flex; }
+        .se-gid-content  { padding: 0 16px 100px; }
+        @media (min-width: 1024px) {
+          .se-gid-deskhead { display: flex !important; }
+          .se-gid-mobhead  { display: none !important; }
+          .se-gid-content  { padding: 24px 32px 60px !important; max-width: 800px; }
+        }
+      `}</style>
 
-        {/* ── HEADER ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0 16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Link href="/" style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", textDecoration: "none" }}>
-              <ArrowLeft size={18} color="#64748b" />
-            </Link>
-            <span style={{ fontSize: 20, fontWeight: 900, color: "#7C3AED", letterSpacing: "-0.01em" }}>SplitEase</span>
+      {/* ── DESKTOP HEADER ── */}
+      <div className="se-gid-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+            <ArrowLeft size={16} color={PURPLE} />
+          </Link>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+              {(group as any).emoji ? `${(group as any).emoji} ` : ""}{group.name}
+            </h1>
+            <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>{group.members.length} members · {group.expenses.length} expenses</p>
           </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
             onClick={() => setShowGroupSettings(!showGroupSettings)}
-            style={{ width: 38, height: 38, borderRadius: "50%", background: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 12, background: showGroupSettings ? "#EDE9FE" : "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", fontSize: 13, fontWeight: 600, color: showGroupSettings ? PURPLE : "#64748b" }}
           >
-            <Settings size={18} color="#64748b" />
+            <Settings size={15} /> Settings
           </button>
+          <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>
+            {initial}
+          </Link>
         </div>
+      </div>
+
+      {/* ── MOBILE HEADER ── */}
+      <div className="se-gid-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
+            <ArrowLeft size={18} color={PURPLE} />
+          </Link>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
+              {(group as any).emoji ? `${(group as any).emoji} ` : ""}{group.name}
+            </h1>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowGroupSettings(!showGroupSettings)}
+          style={{ width: 38, height: 38, borderRadius: "50%", background: showGroupSettings ? "#EDE9FE" : "white", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          <Settings size={18} color={showGroupSettings ? PURPLE : "#64748b"} />
+        </button>
+      </div>
+
+      <div className="se-gid-content" style={{ animation: "fadeIn 0.3s ease" }}>
 
         {/* ── GROUP BALANCE CARD ── */}
-        <div style={{ background: "#EDE9FE", borderRadius: 20, padding: "22px 20px", marginBottom: 20 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 4px" }}>
+        <div style={{ background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 60%, #6366F1 100%)", borderRadius: 22, padding: "24px 22px", marginBottom: 20, position: "relative", overflow: "hidden", boxShadow: "0 10px 36px rgba(124,58,237,0.28)" }}>
+          <div style={{ position: "absolute", top: -40, right: -30, width: 130, height: 130, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: -20, left: -20, width: 90, height: 90, borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 2px" }}>
             {(group as any).emoji && <span style={{ marginRight: 6 }}>{(group as any).emoji}</span>}
             {group.name}
           </p>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "#8B5CF6", margin: "0 0 6px" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.5)", margin: "0 0 6px" }}>
             {group.members.length} members · {group.expenses.length} expenses
           </p>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.08em", margin: "12px 0 4px" }}>
-            Current Balance
+          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.65)", textTransform: "uppercase", letterSpacing: "1px", margin: "12px 0 4px" }}>
+            Your Balance
           </p>
-          <p style={{ fontSize: 36, fontWeight: 900, color: "#1a0533", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+          <p style={{ fontSize: 40, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1px", lineHeight: 1 }}>
             {sym}{Math.abs(myBalance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
           </p>
           {myBalance !== 0 && (
-            <p style={{ fontSize: 13, color: myBalance > 0 ? "#16a34a" : "#dc2626", fontWeight: 600, margin: "0 0 16px" }}>
-              {myBalance > 0 ? "↑ You are owed money" : "↓ You owe money"}
+            <p style={{ fontSize: 13, color: myBalance > 0 ? "#A7F3D0" : "#FCA5A5", fontWeight: 600, margin: "0 0 16px", display: "flex", alignItems: "center", gap: 4 }}>
+              {myBalance > 0 ? <TrendingUp size={14}/> : <TrendingDown size={14}/>}
+              {myBalance > 0 ? "You are owed money" : "You owe money"}
             </p>
           )}
+          {myBalance === 0 && <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", margin: "0 0 16px" }}>All settled up ✓</p>}
           {/* Member avatar stack */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <div style={{ display: "flex" }}>
               {group.members.slice(0, 4).map((m, i) => (
-                <div key={m.userId} style={{ width: 30, height: 30, borderRadius: "50%", background: ["#7C3AED","#A78BFA","#6D28D9","#8B5CF6"][i % 4], border: "2px solid #EDE9FE", marginLeft: i === 0 ? 0 : -8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "white", zIndex: group.members.length - i }}>
+                <div key={m.userId} style={{ width: 30, height: 30, borderRadius: "50%", background: ["rgba(255,255,255,0.25)","rgba(255,255,255,0.18)","rgba(255,255,255,0.22)","rgba(255,255,255,0.15)"][i % 4], border: "2px solid rgba(255,255,255,0.3)", marginLeft: i === 0 ? 0 : -8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "white", zIndex: group.members.length - i }}>
                   {m.user.name.charAt(0).toUpperCase()}
                 </div>
               ))}
               {group.members.length > 4 && (
-                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "white", border: "2px solid #EDE9FE", marginLeft: -8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#7C3AED" }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)", marginLeft: -8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "white" }}>
                   +{group.members.length - 4}
                 </div>
               )}
             </div>
-            <span style={{ fontSize: 12, color: "#8B5CF6", fontWeight: 500 }}>{group.members.length} members traveling</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", fontWeight: 500 }}>{group.members.length} members</span>
           </div>
 
           {/* Settle Up & Add Expense buttons */}
@@ -470,7 +528,7 @@ export default function GroupDetail() {
             {transactions.length > 0 && (
               <button
                 onClick={() => { if (transactions.length > 0) { setSettleTransaction(transactions[0]); setShowSettleModal(true); } }}
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#7C3AED", color: "white", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(124,58,237,0.35)" }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.25)", cursor: "pointer", backdropFilter: "blur(8px)" }}
               >
                 <CheckCircle2 size={16} />
                 Settle Up
@@ -478,17 +536,18 @@ export default function GroupDetail() {
             )}
             <Link
               href={`/groups/${groupId}/expenses/new`}
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: transactions.length > 0 ? "white" : "#7C3AED", color: transactions.length > 0 ? "#7C3AED" : "white", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, border: transactions.length > 0 ? "none" : "none", textDecoration: "none", boxShadow: transactions.length > 0 ? "0 2px 8px rgba(0,0,0,0.08)" : "0 4px 12px rgba(124,58,237,0.35)" }}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "white", color: "#7C3AED", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, textDecoration: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }}
             >
               <Plus size={16} />
               Add Expense
             </Link>
           </div>
+          </div>
         </div>
 
         {/* Success Toast */}
         {settleSuccess && (
-          <div className="alert-success" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
             <Check style={{ width: 20, height: 20 }} />
             {settleSuccess}
           </div>
@@ -496,7 +555,7 @@ export default function GroupDetail() {
 
         {/* Remind Toast */}
         {remindToast && (
-          <div className="alert-success" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
             <Bell style={{ width: 20, height: 20 }} />
             {remindToast}
           </div>
@@ -504,7 +563,7 @@ export default function GroupDetail() {
 
         {/* Duplicate Toast */}
         {duplicateSuccess && (
-          <div className="alert-success" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
             <Check style={{ width: 20, height: 20 }} />
             {duplicateSuccess}
           </div>
@@ -581,7 +640,7 @@ export default function GroupDetail() {
             {settlements.length > 0 && (
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 <History style={{ width: 16, height: 16 }} />
                 History ({settlements.length})
@@ -610,8 +669,8 @@ export default function GroupDetail() {
                     key={i}
                     style={{
                       borderRadius: 16,
-                      border: `1px solid ${isMyTransaction ? '#c7d2fe' : '#e2e8f0'}`,
-                      background: isMyTransaction ? '#eef2ff' : '#ffffff',
+                      border: `1px solid ${isMyTransaction ? '#C4B5FD' : '#e2e8f0'}`,
+                      background: isMyTransaction ? '#EDE9FE' : '#ffffff',
                       padding: 16,
                     }}
                   >
@@ -627,7 +686,7 @@ export default function GroupDetail() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
                           <ArrowRight style={{ width: 16, height: 16, color: '#94a3b8' }} />
-                          <span style={{ fontWeight: 900, color: '#4f46e5', background: '#eef2ff', padding: '4px 10px', borderRadius: 20, fontSize: 14, border: '1px solid #c7d2fe' }}>
+                          <span style={{ fontWeight: 900, color: '#7C3AED', background: '#EDE9FE', padding: '4px 10px', borderRadius: 20, fontSize: 14, border: '1px solid #C4B5FD' }}>
                             {sym}{t.amount.toFixed(0)}
                           </span>
                           <ArrowRight style={{ width: 16, height: 16, color: '#94a3b8' }} />
@@ -651,8 +710,7 @@ export default function GroupDetail() {
                             <>
                               <button
                                 onClick={() => { setSettleTransaction(t); setShowSettleModal(true); }}
-                                className="btn-primary"
-                                style={{ flex: 1, fontSize: 14, justifyContent: 'center' }}
+                                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" }}
                               >
                                 <Check style={{ width: 16, height: 16 }} />
                                 Mark as Paid
@@ -725,11 +783,10 @@ export default function GroupDetail() {
                               }
                             }}
                             disabled={sendingRemindId === t.fromUserId}
-                            className="btn-secondary"
-                            style={{ flex: 1, fontSize: 14, justifyContent: 'center' }}
+                            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", background: "white", color: "#64748b", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                           >
                             {sendingRemindId === t.fromUserId ? (
-                              <div style={{ width: 14, height: 14, border: '2px solid #cbd5e1', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                              <div style={{ width: 14, height: 14, border: "2px solid #cbd5e1", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
                             ) : (
                               <Bell style={{ width: 16, height: 16 }} />
                             )}
@@ -785,7 +842,7 @@ export default function GroupDetail() {
                   setShowAddMember(false);
                   if (!showInvitePanel && !inviteToken) handleGenerateInvite();
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: showInvitePanel ? '#4338ca' : '#64748b', background: showInvitePanel ? '#eef2ff' : '#f1f5f9', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: showInvitePanel ? '#6D28D9' : '#64748b', background: showInvitePanel ? '#EDE9FE' : '#f1f5f9', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}
                 title="Share invite link"
               >
                 <Copy style={{ width: 14, height: 14 }} />
@@ -793,7 +850,7 @@ export default function GroupDetail() {
               </button>
               <button
                 onClick={() => { setShowAddMember(!showAddMember); setAddMemberError(""); setShowInvitePanel(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer' }}
                 title="Add member"
               >
                 <UserPlus style={{ width: 16, height: 16 }} />
@@ -861,8 +918,8 @@ export default function GroupDetail() {
 
           {/* Add Member Form */}
           {showAddMember && (
-            <div style={{ marginBottom: 16, borderRadius: 16, background: '#eef2ff', border: '1px solid #c7d2fe', padding: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#4338ca', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ marginBottom: 16, borderRadius: 16, background: '#EDE9FE', border: '1px solid #C4B5FD', padding: 16 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#6D28D9', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Mail style={{ width: 14, height: 14 }} /> Invite by email
               </p>
               <p style={{ fontSize: 11, color: '#6366f1', marginBottom: 12 }}>
@@ -882,8 +939,7 @@ export default function GroupDetail() {
                   value={addMemberEmail}
                   onChange={(e) => { setAddMemberEmail(e.target.value); setAddMemberError(""); setAddMemberSuccess(""); }}
                   placeholder="friend@email.com"
-                  className="input-field"
-                  style={{ fontSize: 14, padding: '8px 12px' }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 12, border: "1.5px solid #E2E8F0", fontSize: 14, color: "#0f172a", background: "white", outline: "none", boxSizing: "border-box" as const }}
                   onKeyDown={(e) => e.key === "Enter" && handleAddMember()}
                 />
                 <input
@@ -891,15 +947,13 @@ export default function GroupDetail() {
                   value={addMemberName}
                   onChange={(e) => setAddMemberName(e.target.value)}
                   placeholder="Their name (optional — for new accounts)"
-                  className="input-field"
-                  style={{ fontSize: 14, padding: '8px 12px' }}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 12, border: "1.5px solid #E2E8F0", fontSize: 14, color: "#0f172a", background: "white", outline: "none", boxSizing: "border-box" as const }}
                   onKeyDown={(e) => e.key === "Enter" && handleAddMember()}
                 />
                 <button
                   onClick={handleAddMember}
                   disabled={addingMember || !addMemberEmail.trim()}
-                  className="btn-primary"
-                  style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: addingMember || !addMemberEmail.trim() ? "not-allowed" : "pointer", opacity: addingMember || !addMemberEmail.trim() ? 0.7 : 1 }}
                 >
                   {addingMember ? (
                     <>
@@ -995,7 +1049,7 @@ export default function GroupDetail() {
                   setShowActivity(next);
                   if (next && activities.length === 0) fetchActivity();
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: showActivity ? '#4f46e5' : '#64748b', background: showActivity ? '#eef2ff' : '#f1f5f9', padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: showActivity ? '#7C3AED' : '#64748b', background: showActivity ? '#EDE9FE' : '#f1f5f9', padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer' }}
               >
                 <History style={{ width: 14, height: 14 }} />
                 {showActivity ? 'Expenses' : 'Activity'}
@@ -1017,7 +1071,7 @@ export default function GroupDetail() {
             <div>
               {loadingActivity ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-                  <div style={{ width: 28, height: 28, border: '3px solid #c7d2fe', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ width: 28, height: 28, border: '3px solid #C4B5FD', borderTopColor: '#7C3AED', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 </div>
               ) : activities.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8', fontSize: 14 }}>No activity yet</div>
@@ -1035,7 +1089,7 @@ export default function GroupDetail() {
                         width: 18,
                         height: 18,
                         borderRadius: '50%',
-                        background: item.type === 'expense' ? '#eef2ff' : '#f0fdf4',
+                        background: item.type === 'expense' ? '#EDE9FE' : '#f0fdf4',
                         border: `2px solid ${item.type === 'expense' ? '#818cf8' : '#4ade80'}`,
                         display: 'flex',
                         alignItems: 'center',
@@ -1097,7 +1151,7 @@ export default function GroupDetail() {
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
                     <button
                       onClick={() => setCategoryFilter(null)}
-                      style={{ padding: '4px 10px', borderRadius: 20, border: `1.5px solid ${categoryFilter === null ? '#4f46e5' : '#e2e8f0'}`, background: categoryFilter === null ? '#eef2ff' : 'white', color: categoryFilter === null ? '#4338ca' : '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      style={{ padding: '4px 10px', borderRadius: 20, border: `1.5px solid ${categoryFilter === null ? '#7C3AED' : '#e2e8f0'}`, background: categoryFilter === null ? '#EDE9FE' : 'white', color: categoryFilter === null ? '#6D28D9' : '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
                       All
                     </button>
@@ -1105,7 +1159,7 @@ export default function GroupDetail() {
                       <button
                         key={cat}
                         onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
-                        style={{ padding: '4px 10px', borderRadius: 20, border: `1.5px solid ${categoryFilter === cat ? '#4f46e5' : '#e2e8f0'}`, background: categoryFilter === cat ? '#eef2ff' : 'white', color: categoryFilter === cat ? '#4338ca' : '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '4px 10px', borderRadius: 20, border: `1.5px solid ${categoryFilter === cat ? '#7C3AED' : '#e2e8f0'}`, background: categoryFilter === cat ? '#EDE9FE' : 'white', color: categoryFilter === cat ? '#6D28D9' : '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                       >
                         {catChipLabels[cat] || '💡'} {cat.charAt(0).toUpperCase() + cat.slice(1)}
                       </button>
@@ -1117,15 +1171,14 @@ export default function GroupDetail() {
           )}
 
           {!showActivity && group.expenses.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                <Receipt style={{ width: 32, height: 32 }} />
+            <div style={{ textAlign: "center", padding: "48px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+                <Receipt size={32} color="#7C3AED" />
               </div>
-              <h3 className="empty-state-title">No expenses yet</h3>
-              <p className="empty-state-text">Add your first expense to start tracking</p>
-              <Link href={`/groups/${groupId}/expenses/new`} className="btn-primary inline-flex">
-                <Plus style={{ width: 16, height: 16 }} />
-                Add Expense
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "0 0 8px" }}>No expenses yet</h3>
+              <p style={{ fontSize: 14, color: "#64748b", margin: "0 0 22px", lineHeight: 1.6 }}>Add your first expense to start tracking</p>
+              <Link href={`/groups/${groupId}/expenses/new`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 26px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 14px rgba(124,58,237,0.3)" }}>
+                <Plus size={16} /> Add Expense
               </Link>
             </div>
           ) : !showActivity ? (
@@ -1154,8 +1207,7 @@ export default function GroupDetail() {
                 return (
                   <div
                     key={expense.id}
-                    className="card-static card-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, background: "white", borderRadius: 16, border: "1px solid #F3F0FF", padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
                   >
                     {/* Category emoji icon or receipt thumbnail */}
                     {expense.receiptUrl ? (
@@ -1163,7 +1215,7 @@ export default function GroupDetail() {
                         <img src={expense.receiptUrl} alt="Receipt" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                     ) : (
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 20 }}>
                         {getCategoryEmoji(expense.category)}
                       </div>
                     )}
@@ -1262,7 +1314,7 @@ export default function GroupDetail() {
                 </button>
               </div>
 
-              <div style={{ background: '#eef2ff', borderRadius: 16, padding: 16, marginBottom: 20, border: '1px solid #c7d2fe' }}>
+              <div style={{ background: '#EDE9FE', borderRadius: 16, padding: 16, marginBottom: 20, border: '1px solid #C4B5FD' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ textAlign: 'center', flex: 1 }}>
                     <div style={{ width: 40, height: 40, background: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c', fontWeight: 700, margin: '0 auto 4px' }}>
@@ -1336,11 +1388,11 @@ export default function GroupDetail() {
                 );
               })()}
 
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setShowSettleModal(false)} className="btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setShowSettleModal(false)} style={{ flex: 1, padding: "12px 16px", background: "white", border: "1.5px solid #E2E8F0", borderRadius: 14, fontSize: 15, fontWeight: 700, color: "#64748b", cursor: "pointer" }}>
                   Cancel
                 </button>
-                <button onClick={handleSettleUp} disabled={settlingUp} className="btn-primary" style={{ flex: 1 }}>
+                <button onClick={handleSettleUp} disabled={settlingUp} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: settlingUp ? "not-allowed" : "pointer", opacity: settlingUp ? 0.7 : 1 }}>
                   {settlingUp ? (
                     <>
                       <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -1371,15 +1423,14 @@ export default function GroupDetail() {
               <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
                 This action cannot be undone. All split data for this expense will be permanently removed.
               </p>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setDeleteConfirmExpenseId(null)} className="btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button onClick={() => setDeleteConfirmExpenseId(null)} style={{ flex: 1, padding: "12px 16px", background: "white", border: "1.5px solid #E2E8F0", borderRadius: 14, fontSize: 15, fontWeight: 700, color: "#64748b", cursor: "pointer" }}>
                   Cancel
                 </button>
                 <button
                   onClick={() => handleDeleteExpense(deleteConfirmExpenseId)}
                   disabled={deletingExpenseId === deleteConfirmExpenseId}
-                  className="btn-danger"
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, padding: "12px 16px", background: "linear-gradient(135deg, #E11D48, #BE123C)", color: "white", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: deletingExpenseId === deleteConfirmExpenseId ? "not-allowed" : "pointer", opacity: deletingExpenseId === deleteConfirmExpenseId ? 0.7 : 1 }}
                 >
                   {deletingExpenseId === deleteConfirmExpenseId ? "Deleting..." : "Delete"}
                 </button>
@@ -1393,7 +1444,7 @@ export default function GroupDetail() {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
             <div style={{ background: 'white', borderRadius: 24, padding: 24, maxWidth: 400, width: '100%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
               {removeError && (
-                <div className="alert-error" style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
                   <AlertCircle style={{ width: 20, height: 20 }} />
                   {removeError}
                 </div>
@@ -1407,19 +1458,17 @@ export default function GroupDetail() {
               <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
                 Member must have zero balance before being removed. Make sure all expenses are settled first.
               </p>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: "flex", gap: 12 }}>
                 <button
                   onClick={() => { setRemoveConfirmMemberId(null); setRemoveError(""); }}
-                  className="btn-secondary"
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, padding: "12px 16px", background: "white", border: "1.5px solid #E2E8F0", borderRadius: 14, fontSize: 15, fontWeight: 700, color: "#64748b", cursor: "pointer" }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleRemoveMember(removeConfirmMemberId)}
                   disabled={removingMemberId === removeConfirmMemberId}
-                  className="btn-danger"
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, padding: "12px 16px", background: "linear-gradient(135deg, #E11D48, #BE123C)", color: "white", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: removingMemberId === removeConfirmMemberId ? "not-allowed" : "pointer", opacity: removingMemberId === removeConfirmMemberId ? 0.7 : 1 }}
                 >
                   {removingMemberId === removeConfirmMemberId ? "Removing..." : "Remove"}
                 </button>
@@ -1428,7 +1477,7 @@ export default function GroupDetail() {
           </div>
         )}
 
-      </div>
+      </div>{/* se-gid-content */}
 
     </div>
     </AppShell>
