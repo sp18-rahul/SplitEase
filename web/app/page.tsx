@@ -6,13 +6,7 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { Plus, X, Check, Bell, Settings, ChevronRight } from "lucide-react";
 import { AppShell } from "@/app/components/AppSidebar";
-
-// ── CONSTANTS ──────────────────────────────────────────────────────────────
-const PURPLE    = "#7C3AED";
-const PURPLE_MID = "#6D28D9";
-const TEAL      = "#0EA5E9";
-const TEAL_DARK = "#0284C7";
-const PAGE_BG   = "#F0EEFF";
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS, STYLES, mergeStyles } from "@/lib/designSystem";
 
 // ── INTERFACES ──────────────────────────────────────────────────────────────
 interface Group {
@@ -74,7 +68,7 @@ function getBalance(group: Group, currentUserId: number) {
 function AvatarStack({ members, max = 4 }: { members: { user: { name: string } }[]; max?: number }) {
   const shown = members.slice(0, max);
   const extra = members.length - max;
-  const colors = [PURPLE, "#A78BFA", "#6D28D9", "#8B5CF6", TEAL];
+  const colors = [COLORS.primaryContainer, COLORS.secondaryContainer, COLORS.primary, COLORS.secondary, COLORS.success];
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       {shown.map((m, i) => (
@@ -91,7 +85,7 @@ function AvatarStack({ members, max = 4 }: { members: { user: { name: string } }
         </div>
       ))}
       {extra > 0 && (
-        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#EDE9FE", border: "2px solid white", marginLeft: -7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: PURPLE }}>
+        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#EDE9FE", border: "2px solid white", marginLeft: -7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: COLORS.primaryContainer }}>
           +{extra}
         </div>
       )}
@@ -118,12 +112,12 @@ function BalanceHeroCard({
 
   return (
     <div style={{
-      borderRadius: 20,
+      borderRadius: BORDER_RADIUS["2xl"],
       overflow: "hidden",
-      marginBottom: 16,
+      marginBottom: SPACING.md,
       position: "relative",
-      background: "linear-gradient(130deg, #A78BFA 0%, #7C3AED 30%, #4F46E5 65%, #38BDF8 100%)",
-      boxShadow: "0 8px 32px rgba(124,58,237,0.25)",
+      background: `linear-gradient(130deg, ${COLORS.secondaryContainer} 0%, ${COLORS.primaryContainer} 30%, #4F46E5 65%, #38BDF8 100%)`,
+      boxShadow: `0 8px 32px rgba(124,58,237,0.25)`,
       minHeight: 160,
     }}>
       {/* Wave overlay */}
@@ -140,27 +134,27 @@ function BalanceHeroCard({
       </svg>
 
       {/* Content */}
-      <div style={{ padding: "20px 22px 28px", position: "relative", zIndex: 1 }}>
+      <div style={{ padding: `${SPACING.lg} 22px 28px`, position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 6px" }}>
+            <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 6px" }}>
               TOTAL BALANCE
             </p>
-            <p style={{ fontSize: 42, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1.5px", lineHeight: 1 }}>
+            <p style={{ fontSize: TYPOGRAPHY.display.fontSize, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1.5px", lineHeight: 1 }}>
               ₹{Math.abs(total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
             </p>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", margin: 0, display: "flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
-              <span style={{ fontSize: 12 }}>{total >= 0 ? "↑" : "↓"}</span>
+            <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: "rgba(255,255,255,0.8)", margin: 0, display: "flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
+              <span style={{ fontSize: TYPOGRAPHY.labelSm.fontSize }}>{total >= 0 ? "↑" : "↓"}</span>
               {total >= 0 ? `+₹${owedToYou.toLocaleString("en-IN", { maximumFractionDigits: 0 })} this month` : `-₹${youOwe.toLocaleString("en-IN", { maximumFractionDigits: 0 })} this month`}
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", borderRadius: 10, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "white", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              Last 7 days <span style={{ fontSize: 10 }}>▾</span>
+          <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
+            <div style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", borderRadius: BORDER_RADIUS.md, padding: `${SPACING.xs} ${SPACING.sm}`, fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 600, color: "white", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: SPACING.xs }}>
+              Last 7 days <span style={{ fontSize: TYPOGRAPHY.labelSm.fontSize }}>▾</span>
             </div>
             <button
               onClick={onAddExpense}
-              style={{ width: 36, height: 36, borderRadius: 10, background: TEAL, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 12px ${TEAL}66` }}
+              style={{ width: 36, height: 36, borderRadius: BORDER_RADIUS.md, background: COLORS.secondaryContainer, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 12px rgba(139, 78, 247, 0.4)` }}
             >
               <Plus size={20} color="white" strokeWidth={2.5} />
             </button>
@@ -181,43 +175,43 @@ function DebtCards({ groups, currentUserId }: { groups: Group[]; currentUserId: 
   });
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.sm, marginBottom: SPACING.lg }}>
       {/* You Owe */}
-      <div style={{ background: "white", borderRadius: 16, padding: "16px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#FFF1F2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: `${SPACING.md} ${SPACING.sm}`, boxShadow: SHADOWS.sm, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: COLORS.errorContainer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 19V5M5 12l7-7 7 7" stroke="#FB7185" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 19V5M5 12l7-7 7 7" stroke={COLORS.error} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div>
-            <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, margin: "0 0 2px" }}>You Owe</p>
-            <p style={{ fontSize: 18, fontWeight: 900, color: "#FB7185", margin: 0, letterSpacing: "-0.5px" }}>
+            <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[500], fontWeight: 600, margin: "0 0 2px" }}>You Owe</p>
+            <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 900, color: COLORS.error, margin: 0, letterSpacing: "-0.5px" }}>
               ₹{youOwe.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
             </p>
           </div>
         </div>
-        <Link href="/activity" style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textDecoration: "none", padding: "5px 12px", borderRadius: 20, border: "1.5px solid #E2E8F0", background: "white" }}>
+        <Link href="/activity" style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 700, color: COLORS.neutral[500], textDecoration: "none", padding: `${SPACING.xs} ${SPACING.sm}`, borderRadius: BORDER_RADIUS.full, border: `1.5px solid ${COLORS.outline}`, background: COLORS.surface }}>
           View
         </Link>
       </div>
 
       {/* Owed to You */}
-      <div style={{ background: "white", borderRadius: 16, padding: "16px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: `${SPACING.md} ${SPACING.sm}`, boxShadow: SHADOWS.sm, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: COLORS.successContainer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12l7 7 7-7" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 5v14M5 12l7 7 7-7" stroke={COLORS.success} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div>
-            <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, margin: "0 0 2px" }}>Owed to You</p>
-            <p style={{ fontSize: 18, fontWeight: 900, color: "#10B981", margin: 0, letterSpacing: "-0.5px" }}>
+            <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[500], fontWeight: 600, margin: "0 0 2px" }}>Owed to You</p>
+            <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 900, color: COLORS.success, margin: 0, letterSpacing: "-0.5px" }}>
               ₹{owedToYou.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
             </p>
           </div>
         </div>
-        <Link href="/activity" style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textDecoration: "none", padding: "5px 12px", borderRadius: 20, border: "1.5px solid #E2E8F0", background: "white" }}>
+        <Link href="/activity" style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 700, color: COLORS.neutral[500], textDecoration: "none", padding: `${SPACING.xs} ${SPACING.sm}`, borderRadius: BORDER_RADIUS.full, border: `1.5px solid ${COLORS.outline}`, background: COLORS.surface }}>
           View
         </Link>
       </div>
@@ -234,46 +228,46 @@ function GroupCard({ group, currentUserId }: { group: Group; currentUserId: numb
   const totalBills = (group.expenses || []).length;
 
   return (
-    <div style={{ background: "white", borderRadius: 18, padding: "18px 20px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 12, border: "1px solid #F3F0FF" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS["2xl"], padding: SPACING.lg, boxShadow: SHADOWS.sm, marginBottom: SPACING.sm, border: `1px solid ${COLORS.outlineVariant}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
         {/* Group icon */}
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: group.emoji ? 24 : 18, fontWeight: 700, color: PURPLE, flexShrink: 0, border: "1px solid #EDE9FE" }}>
+        <div style={{ width: 48, height: 48, borderRadius: BORDER_RADIUS.lg, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: group.emoji ? 24 : 18, fontWeight: 700, color: COLORS.primaryContainer, flexShrink: 0, border: `1px solid ${COLORS.outlineVariant}` }}>
           {group.emoji || group.name.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ fontWeight: 800, fontSize: 16, color: "#0f172a", margin: 0 }}>{group.name}</p>
-            <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{timeAgo(latestExpense?.createdAt)}</p>
+            <p style={{ fontWeight: 800, fontSize: TYPOGRAPHY.bodyLg.fontSize, color: COLORS.onSurface, margin: 0 }}>{group.name}</p>
+            <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>{timeAgo(latestExpense?.createdAt)}</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm, marginTop: SPACING.xs }}>
             <AvatarStack members={group.members} max={4} />
-            <span style={{ fontSize: 12, color: "#94a3b8" }}>·</span>
-            <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>{totalBills} bill{totalBills !== 1 ? "s" : ""}</span>
+            <span style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400] }}>·</span>
+            <span style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], fontWeight: 500 }}>{totalBills} bill{totalBills !== 1 ? "s" : ""}</span>
           </div>
         </div>
       </div>
 
       {/* Balance row + actions */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: SPACING.lg }}>
         <div>
-          <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, margin: "0 0 2px" }}>
+          <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], fontWeight: 500, margin: "0 0 2px" }}>
             {isOwed ? "You are owed" : isOwes ? "You owe" : "All settled"}
           </p>
-          <p style={{ fontSize: 22, fontWeight: 900, color: isOwed ? PURPLE : isOwes ? "#FB7185" : "#94a3b8", margin: 0, letterSpacing: "-0.5px" }}>
+          <p style={{ fontSize: TYPOGRAPHY.headlineMd.fontSize, fontWeight: 900, color: isOwed ? COLORS.primaryContainer : isOwes ? COLORS.error : COLORS.neutral[400], margin: 0, letterSpacing: "-0.5px" }}>
             ₹{Math.abs(balance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link href={`/groups/${group.id}`} style={{ padding: "8px 16px", borderRadius: 10, border: "1.5px solid #E2E8F0", background: "white", fontSize: 13, fontWeight: 700, color: "#374151", textDecoration: "none" }}>
+        <div style={{ display: "flex", gap: SPACING.sm }}>
+          <Link href={`/groups/${group.id}`} style={{ padding: `${SPACING.xs} ${SPACING.md}`, borderRadius: BORDER_RADIUS.md, border: `1.5px solid ${COLORS.outline}`, background: COLORS.surface, fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: COLORS.neutral[700], textDecoration: "none" }}>
             View Details
           </Link>
           {isOwes && (
-            <Link href={`/groups/${group.id}`} style={{ padding: "8px 16px", borderRadius: 10, background: `linear-gradient(135deg, ${TEAL}, ${TEAL_DARK})`, fontSize: 13, fontWeight: 700, color: "white", textDecoration: "none", boxShadow: `0 3px 10px ${TEAL}44` }}>
+            <Link href={`/groups/${group.id}`} style={{ padding: `${SPACING.xs} ${SPACING.md}`, borderRadius: BORDER_RADIUS.md, background: `linear-gradient(135deg, ${COLORS.secondaryContainer}, ${COLORS.secondary})`, fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: "white", textDecoration: "none", boxShadow: `0 3px 10px rgba(139, 78, 247, 0.27)` }}>
               Settle
             </Link>
           )}
           {isOwed && (
-            <Link href={`/groups/${group.id}`} style={{ padding: "8px 16px", borderRadius: 10, background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, fontSize: 13, fontWeight: 700, color: "white", textDecoration: "none", boxShadow: `0 3px 10px ${PURPLE}44` }}>
+            <Link href={`/groups/${group.id}`} style={{ padding: `${SPACING.xs} ${SPACING.md}`, borderRadius: BORDER_RADIUS.md, background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: "white", textDecoration: "none", boxShadow: `0 3px 10px rgba(124, 58, 237, 0.27)` }}>
               Remind
             </Link>
           )}
@@ -290,20 +284,20 @@ function RecentActivityPanel({ groups, currentUserId }: { groups: Group[]; curre
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .slice(0, 5);
 
-  const colors = [PURPLE, "#10B981", TEAL, "#F59E0B", "#FB7185"];
+  const colors = [COLORS.primaryContainer, COLORS.success, COLORS.secondaryContainer, COLORS.warning, COLORS.error];
 
   return (
-    <div style={{ background: "white", borderRadius: 18, padding: "18px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>Recent Activity</h3>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10B981" }} />
+    <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS["2xl"], padding: SPACING.lg, boxShadow: SHADOWS.sm, marginBottom: SPACING.sm }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.lg }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+          <h3 style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 800, color: COLORS.onSurface, margin: 0 }}>Recent Activity</h3>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.success }} />
         </div>
-        <Link href="/activity" style={{ fontSize: 12, fontWeight: 700, color: PURPLE, textDecoration: "none" }}>View All</Link>
+        <Link href="/activity" style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 700, color: COLORS.primaryContainer, textDecoration: "none" }}>View All</Link>
       </div>
 
       {all.length === 0 ? (
-        <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", padding: "16px 0", margin: 0 }}>No activity yet</p>
+        <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.neutral[400], textAlign: "center", padding: SPACING.md + " 0", margin: 0 }}>No activity yet</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {all.map((exp, idx) => {
@@ -311,17 +305,17 @@ function RecentActivityPanel({ groups, currentUserId }: { groups: Group[]; curre
             const nameParts = exp.paidBy?.name || (iPaid ? "You" : "Someone");
             const initChar = nameParts.charAt(0).toUpperCase();
             return (
-              <div key={exp.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: idx < all.length - 1 ? "1px solid #F8F5FF" : "none" }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: colors[idx % colors.length] + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: colors[idx % colors.length], flexShrink: 0 }}>
+              <div key={exp.id} style={{ display: "flex", alignItems: "center", gap: SPACING.md, padding: SPACING.sm + " 0", borderBottom: idx < all.length - 1 ? `1px solid ${COLORS.outlineVariant}` : "none" }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: colors[idx % colors.length] + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 800, color: colors[idx % colors.length], flexShrink: 0 }}>
                   {initChar}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 700, color: COLORS.onSurface, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {iPaid ? "You" : nameParts} paid ₹{exp.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })} for {exp.description}
                   </p>
-                  <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>{timeAgo(exp.createdAt)}</p>
+                  <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>{timeAgo(exp.createdAt)}</p>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 800, color: iPaid ? "#10B981" : "#FB7185", margin: 0, flexShrink: 0 }}>
+                <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 800, color: iPaid ? COLORS.success : COLORS.error, margin: 0, flexShrink: 0 }}>
                   {iPaid ? "+" : "-"}₹{exp.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </p>
               </div>
@@ -360,52 +354,52 @@ function InsightMiniCards({ groups, currentUserId }: { groups: Group[]; currentU
   const topCat = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ background: "white", borderRadius: 16, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1px solid #F3F0FF" }}>
-        <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, margin: "0 0 8px" }}>You spend the most</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.sm }}>
+      <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.md, boxShadow: SHADOWS.xs, border: `1px solid ${COLORS.outlineVariant}` }}>
+        <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], fontWeight: 600, margin: "0 0 8px" }}>You spend the most</p>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
           {topCat ? (
             <>
               <span style={{ fontSize: 22 }}>
                 {topCat[0] === "Food" ? "🍔" : topCat[0] === "Transport" ? "🚗" : topCat[0] === "Housing" ? "🏠" : topCat[0] === "Entertainment" ? "🎬" : topCat[0] === "Groceries" ? "🛒" : topCat[0] === "Shopping" ? "🛍️" : topCat[0] === "Travel" ? "✈️" : topCat[0] === "Utilities" ? "💡" : "💸"}
               </span>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 900, color: PURPLE, margin: "0 0 1px" }}>{topCat[0]}</p>
-                <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>₹{topCat[1].toLocaleString("en-IN", { maximumFractionDigits: 0 })} last month</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 900, color: COLORS.primaryContainer, margin: "0 0 1px" }}>{topCat[0]}</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>₹{topCat[1].toLocaleString("en-IN", { maximumFractionDigits: 0 })} last month</p>
               </div>
             </>
           ) : (
             <>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PURPLE} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <div style={{ width: 32, height: 32, borderRadius: BORDER_RADIUS.md, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.primaryContainer} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#94a3b8", margin: "0 0 1px" }}>No expenses yet</p>
-                <p style={{ fontSize: 11, color: "#cbd5e1", margin: 0 }}>Add expenses to track</p>
+                <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 700, color: COLORS.neutral[400], margin: "0 0 1px" }}>No expenses yet</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[300], margin: 0 }}>Add expenses to track</p>
               </div>
             </>
           )}
         </div>
       </div>
-      <div style={{ background: "white", borderRadius: 16, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1px solid #F3F0FF" }}>
-        <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, margin: "0 0 8px" }}>Top group</p>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.md, boxShadow: SHADOWS.xs, border: `1px solid ${COLORS.outlineVariant}` }}>
+        <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], fontWeight: 600, margin: "0 0 8px" }}>Top group</p>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
           {topGroup ? (
             <>
               <span style={{ fontSize: 22 }}>{topGroup.emoji || "👥"}</span>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 900, color: "#0f172a", margin: "0 0 1px" }}>{topGroup.name}</p>
-                <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>{(topGroup.expenses || []).length} bills settled</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: "0 0 1px" }}>{topGroup.name}</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>{(topGroup.expenses || []).length} bills settled</p>
               </div>
             </>
           ) : (
             <>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              <div style={{ width: 32, height: 32, borderRadius: BORDER_RADIUS.md, background: COLORS.successContainer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.success} strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#94a3b8", margin: "0 0 1px" }}>No groups yet</p>
-                <p style={{ fontSize: 11, color: "#cbd5e1", margin: 0 }}>Create a group to start</p>
+                <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 700, color: COLORS.neutral[400], margin: "0 0 1px" }}>No groups yet</p>
+                <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[300], margin: 0 }}>Create a group to start</p>
               </div>
             </>
           )}
@@ -480,79 +474,79 @@ function InsightsSection({ groups, currentUserId }: { groups: Group[]; currentUs
     : null;
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>Insights</h2>
-        <span style={{ fontSize: 14, color: "#94a3b8" }}>ℹ</span>
+    <div style={{ marginTop: SPACING.lg }}>
+      <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.lg }}>
+        <h2 style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 800, color: COLORS.onSurface, margin: 0 }}>Insights</h2>
+        <span style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, color: COLORS.neutral[400] }}>ℹ</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: SPACING.sm }}>
         {/* You spend the most */}
-        <div style={{ background: "white", borderRadius: 16, padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1px solid #F3F0FF" }}>
-          <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, margin: "0 0 10px" }}>You spend the most</p>
+        <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.md, boxShadow: SHADOWS.xs, border: `1px solid ${COLORS.outlineVariant}` }}>
+          <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[500], fontWeight: 600, margin: "0 0 10px" }}>You spend the most</p>
           {topCat ? (
             <>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>
+              <div style={{ fontSize: 28, marginBottom: SPACING.sm }}>
                 {topCat[0] === "Food" ? "🍔" : topCat[0] === "Transport" ? "🚗" : topCat[0] === "Housing" ? "🏠" : topCat[0] === "Entertainment" ? "🎬" : topCat[0] === "Groceries" ? "🛒" : topCat[0] === "Shopping" ? "🛍️" : topCat[0] === "Travel" ? "✈️" : topCat[0] === "Utilities" ? "💡" : "💸"}
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: PURPLE, margin: "0 0 3px" }}>{topCat[0]}</p>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>₹{topCat[1].toLocaleString("en-IN", { maximumFractionDigits: 0 })} last month</p>
+              <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 900, color: COLORS.primaryContainer, margin: "0 0 3px" }}>{topCat[0]}</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>₹{topCat[1].toLocaleString("en-IN", { maximumFractionDigits: 0 })} last month</p>
             </>
           ) : (
             <>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={PURPLE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ width: 40, height: 40, borderRadius: BORDER_RADIUS.lg, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: SPACING.sm }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={COLORS.primaryContainer} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                 </svg>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#94a3b8", margin: "0 0 3px" }}>No data yet</p>
-              <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>Add expenses to track</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: COLORS.neutral[400], margin: "0 0 3px" }}>No data yet</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[300], margin: 0 }}>Add expenses to track</p>
             </>
           )}
         </div>
 
         {/* Top Group */}
-        <div style={{ background: "white", borderRadius: 16, padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1px solid #F3F0FF" }}>
-          <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, margin: "0 0 10px" }}>Top group</p>
+        <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.md, boxShadow: SHADOWS.xs, border: `1px solid ${COLORS.outlineVariant}` }}>
+          <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[500], fontWeight: 600, margin: "0 0 10px" }}>Top group</p>
           {topGroup ? (
             <>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>{topGroup.emoji || "👥"}</div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", margin: "0 0 3px" }}>{topGroup.name}</p>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{(topGroup.expenses || []).length} bills · {topGroup.members.length} members</p>
+              <div style={{ fontSize: 28, marginBottom: SPACING.sm }}>{topGroup.emoji || "👥"}</div>
+              <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: "0 0 3px" }}>{topGroup.name}</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>{(topGroup.expenses || []).length} bills · {topGroup.members.length} members</p>
             </>
           ) : (
             <>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ width: 40, height: 40, borderRadius: BORDER_RADIUS.lg, background: COLORS.successContainer, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: SPACING.sm }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={COLORS.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
                   <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
                 </svg>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#94a3b8", margin: "0 0 3px" }}>No groups yet</p>
-              <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>Create a group to start</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: COLORS.neutral[400], margin: "0 0 3px" }}>No groups yet</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[300], margin: 0 }}>Create a group to start</p>
             </>
           )}
         </div>
 
         {/* Biggest Debtor */}
-        <div style={{ background: "white", borderRadius: 16, padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", border: "1px solid #F3F0FF" }}>
-          <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, margin: "0 0 10px" }}>Biggest debtor</p>
+        <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS.xl, padding: SPACING.md, boxShadow: SHADOWS.xs, border: `1px solid ${COLORS.outlineVariant}` }}>
+          <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[500], fontWeight: 600, margin: "0 0 10px" }}>Biggest debtor</p>
           {biggestDebtor ? (
             <>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "white", marginBottom: 8 }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 800, color: "white", marginBottom: SPACING.sm }}>
                 {biggestDebtor.name.charAt(0).toUpperCase()}
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: PURPLE, margin: "0 0 3px" }}>₹{biggestDebtor.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>{biggestDebtor.name.split(" ")[0]} owes you</p>
+              <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 900, color: COLORS.primaryContainer, margin: "0 0 3px" }}>₹{biggestDebtor.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[400], margin: 0 }}>{biggestDebtor.name.split(" ")[0]} owes you</p>
             </>
           ) : (
             <>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ width: 40, height: 40, borderRadius: BORDER_RADIUS.lg, background: COLORS.successContainer, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: SPACING.sm }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={COLORS.success} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#10B981", margin: "0 0 3px" }}>All settled up!</p>
-              <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>No pending debts</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 700, color: COLORS.success, margin: "0 0 3px" }}>All settled up!</p>
+              <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, color: COLORS.neutral[300], margin: 0 }}>No pending debts</p>
             </>
           )}
         </div>
@@ -564,22 +558,22 @@ function InsightsSection({ groups, currentUserId }: { groups: Group[]; currentUs
 // ── ONBOARDING ────────────────────────────────────────────────────────────────
 function OnboardingCard() {
   return (
-    <div style={{ background: "white", borderRadius: 18, padding: "32px 24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", textAlign: "center", border: "1px solid #F3F0FF", marginBottom: 12 }}>
+    <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS["2xl"], padding: `${SPACING.xl} ${SPACING.lg}`, boxShadow: SHADOWS.sm, textAlign: "center", border: `1px solid ${COLORS.outlineVariant}`, marginBottom: SPACING.sm }}>
       {/* Simple illustration placeholder */}
-      <div style={{ width: 100, height: 80, margin: "0 auto 20px", position: "relative" }}>
-        {[PURPLE, "#A78BFA", "#10B981"].map((c, i) => (
-          <div key={i} style={{ position: "absolute", width: 44, height: 44, borderRadius: "50%", background: c, opacity: 0.85, top: i === 1 ? 0 : 16, left: i === 0 ? 0 : i === 1 ? 28 : 56, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: "2px solid white" }}>
+      <div style={{ width: 100, height: 80, margin: `0 auto ${SPACING.lg}`, position: "relative" }}>
+        {[COLORS.primaryContainer, COLORS.secondaryContainer, COLORS.success].map((c, i) => (
+          <div key={i} style={{ position: "absolute", width: 44, height: 44, borderRadius: "50%", background: c, opacity: 0.85, top: i === 1 ? 0 : SPACING.lg, left: i === 0 ? 0 : i === 1 ? 28 : 56, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: "2px solid white" }}>
             {["😊","😄","😎"][i]}
           </div>
         ))}
       </div>
-      <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", margin: "0 0 6px" }}>
+      <p style={{ fontSize: TYPOGRAPHY.bodyLg.fontSize, fontWeight: 700, color: COLORS.onSurface, margin: `0 0 ${SPACING.xs}` }}>
         Start splitting expenses with your friends
       </p>
-      <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 20px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.neutral[500], margin: `0 0 ${SPACING.lg}`, lineHeight: 1.5 }}>
         Create a group, add members, and start tracking shared expenses together.
       </p>
-      <Link href="/groups/new" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 28px", background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", borderRadius: 14, textDecoration: "none", fontWeight: 700, fontSize: 14, boxShadow: `0 4px 14px ${PURPLE}44` }}>
+      <Link href="/groups/new" style={{ display: "inline-flex", alignItems: "center", gap: SPACING.sm, padding: `11px ${SPACING.lg}`, background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, color: "white", borderRadius: BORDER_RADIUS.lg, textDecoration: "none", fontWeight: 700, fontSize: TYPOGRAPHY.labelMd.fontSize, boxShadow: `0 4px 14px rgba(124, 58, 237, 0.27)` }}>
         <Plus size={16} /> Create Group
       </Link>
     </div>
@@ -635,70 +629,70 @@ function QuickAddModal({ groups, currentUserId, onClose, onSuccess }: QuickAddMo
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 540, padding: "8px 0 40px", boxShadow: "0 -12px 48px rgba(0,0,0,0.18)" }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e2e8f0" }} />
+      <div style={{ background: COLORS.surface, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 540, padding: `${SPACING.xs} 0 ${SPACING.xl}`, boxShadow: SHADOWS.lg }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "center", padding: `${SPACING.md} 0 ${SPACING.xs}` }}>
+          <div style={{ width: 36, height: 4, borderRadius: BORDER_RADIUS.sm, background: COLORS.outline }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 24px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${SPACING.xs} ${SPACING.lg} ${SPACING.md}` }}>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Add Expense</h2>
-            <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>Split equally among all members</p>
+            <h2 style={{ fontSize: TYPOGRAPHY.display.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: 0 }}>Add Expense</h2>
+            <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.neutral[400], margin: `${SPACING.xs} 0 0` }}>Split equally among all members</p>
           </div>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "50%", background: "#F1F5F9", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={18} color="#64748b" />
+          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "50%", background: COLORS.neutral[100], border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={18} color={COLORS.neutral[500]} />
           </button>
         </div>
 
         {success ? (
-          <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Check size={28} color="#16A34A" />
+          <div style={{ padding: SPACING.xl + " " + SPACING.lg, display: "flex", flexDirection: "column", alignItems: "center", gap: SPACING.sm }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: COLORS.successContainer, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Check size={28} color={COLORS.success} />
             </div>
-            <p style={{ fontWeight: 800, color: "#0f172a", fontSize: 16, margin: 0 }}>Expense added!</p>
+            <p style={{ fontWeight: 800, color: COLORS.onSurface, fontSize: TYPOGRAPHY.bodyLg.fontSize, margin: 0 }}>Expense added!</p>
           </div>
         ) : (
-          <div style={{ padding: "0 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-            {error && <div style={{ background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 10, padding: "10px 14px", color: "#E11D48", fontSize: 13, fontWeight: 600 }}>{error}</div>}
+          <div style={{ padding: `0 ${SPACING.lg}`, display: "flex", flexDirection: "column", gap: SPACING.lg }}>
+            {error && <div style={{ background: COLORS.errorContainer, border: `1px solid ${COLORS.error}`, borderRadius: BORDER_RADIUS.md, padding: SPACING.sm + " " + SPACING.md, color: COLORS.error, fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 600 }}>{error}</div>}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>Group</label>
-              <select value={selectedGroupId} onChange={(e) => setSelectedGroupId(Number(e.target.value) || "")} style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, color: "#0f172a", background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}>
+              <label style={mergeStyles(STYLES.label, { textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: SPACING.sm })}>Group</label>
+              <select value={selectedGroupId} onChange={(e) => setSelectedGroupId(Number(e.target.value) || "")} style={mergeStyles(STYLES.input, { background: COLORS.background })}>
                 <option value="">Select a group...</option>
                 {groups.map((g) => <option key={g.id} value={g.id}>{g.emoji || ""} {g.name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>What was it for?</label>
-              <input ref={descRef} type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Dinner, Petrol, Movie tickets..." style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, color: "#0f172a", background: "#F8FAFC", outline: "none", boxSizing: "border-box" }} onFocus={(e) => e.currentTarget.style.borderColor = PURPLE} onBlur={(e) => e.currentTarget.style.borderColor = "#E2E8F0"} />
+              <label style={mergeStyles(STYLES.label, { textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: SPACING.sm })}>What was it for?</label>
+              <input ref={descRef} type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Dinner, Petrol, Movie tickets..." style={mergeStyles(STYLES.input, { background: COLORS.background })} onFocus={(e) => e.currentTarget.style.borderColor = COLORS.primaryContainer} onBlur={(e) => e.currentTarget.style.borderColor = COLORS.outline} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.sm }}>
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>Amount (₹)</label>
+                <label style={mergeStyles(STYLES.label, { textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: SPACING.sm })}>Amount (₹)</label>
                 <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#64748b", fontWeight: 700, fontSize: 15, pointerEvents: "none" }}>₹</span>
-                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" step="0.01" min="0" style={{ width: "100%", padding: "11px 14px 11px 30px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 18, fontWeight: 800, color: "#0f172a", background: "#F8FAFC", outline: "none", boxSizing: "border-box" }} onFocus={(e) => e.currentTarget.style.borderColor = PURPLE} onBlur={(e) => e.currentTarget.style.borderColor = "#E2E8F0"} onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
+                  <span style={{ position: "absolute", left: SPACING.md, top: "50%", transform: "translateY(-50%)", color: COLORS.neutral[500], fontWeight: 700, fontSize: TYPOGRAPHY.bodyLg.fontSize, pointerEvents: "none" }}>₹</span>
+                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" step="0.01" min="0" style={mergeStyles(STYLES.input, { paddingLeft: "30px", background: COLORS.background, fontSize: TYPOGRAPHY.display.fontSize, fontWeight: 800 })} onFocus={(e) => e.currentTarget.style.borderColor = COLORS.primaryContainer} onBlur={(e) => e.currentTarget.style.borderColor = COLORS.outline} onKeyDown={(e) => e.key === "Enter" && handleSubmit()} />
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>Paid by</label>
-                <select value={paidById} onChange={(e) => setPaidById(Number(e.target.value) || "")} style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E2E8F0", borderRadius: 12, fontSize: 14, color: "#0f172a", background: "#F8FAFC", outline: "none", boxSizing: "border-box" }}>
+                <label style={mergeStyles(STYLES.label, { textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: SPACING.sm })}>Paid by</label>
+                <select value={paidById} onChange={(e) => setPaidById(Number(e.target.value) || "")} style={mergeStyles(STYLES.input, { background: COLORS.background })}>
                   <option value="">Select...</option>
                   {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
             </div>
             {selectedGroup && members.length > 0 && amount && parseFloat(amount) > 0 && (
-              <div style={{ background: "#F8F5FF", borderRadius: 12, padding: "10px 14px", border: "1px solid #EDE9FE" }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Split preview</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ background: "#F8F5FF", borderRadius: BORDER_RADIUS.lg, padding: SPACING.sm + " " + SPACING.md, border: `1px solid ${COLORS.outlineVariant}` }}>
+                <p style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 700, color: COLORS.neutral[500], margin: `0 0 ${SPACING.sm}`, textTransform: "uppercase", letterSpacing: "0.5px" }}>Split preview</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.xs }}>
                   {members.map((m) => (
-                    <span key={m.id} style={{ fontSize: 12, fontWeight: 600, color: PURPLE, background: "#EDE9FE", padding: "4px 10px", borderRadius: 20 }}>
+                    <span key={m.id} style={{ fontSize: TYPOGRAPHY.labelSm.fontSize, fontWeight: 600, color: COLORS.primaryContainer, background: "#EDE9FE", padding: `${SPACING.xs} ${SPACING.sm}`, borderRadius: BORDER_RADIUS.full }}>
                       {m.name.split(" ")[0]}: ₹{(parseFloat(amount) / members.length).toFixed(0)}
                     </span>
                   ))}
                 </div>
               </div>
             )}
-            <button onClick={handleSubmit} disabled={saving} style={{ width: "100%", padding: "14px", background: saving ? "#a78bfa" : `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", border: "none", borderRadius: 14, fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: saving ? "none" : `0 4px 16px ${PURPLE}44`, marginTop: 4 }}>
+            <button onClick={handleSubmit} disabled={saving} style={mergeStyles(STYLES.buttonPrimary, { width: "100%", background: saving ? COLORS.secondary : `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, cursor: saving ? "not-allowed" : "pointer", boxShadow: saving ? "none" : `0 4px 16px rgba(124, 58, 237, 0.27)`, marginTop: SPACING.xs })}>
               {saving ? "Adding..." : <><Plus size={18} /> Add Expense</>}
             </button>
           </div>
@@ -740,10 +734,10 @@ export default function Home() {
 
   if (status === "loading" || (status === "authenticated" && loading)) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: PAGE_BG }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 44, height: 44, border: `4px solid #EDE9FE`, borderTopColor: PURPLE, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-          <p style={{ color: PURPLE, fontWeight: 600, fontSize: 15 }}>Loading your ledger…</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: COLORS.background }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: SPACING.lg }}>
+          <div style={{ width: 44, height: 44, border: `4px solid ${COLORS.outlineVariant}`, borderTopColor: COLORS.primaryContainer, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <p style={{ color: COLORS.primaryContainer, fontWeight: 600, fontSize: TYPOGRAPHY.bodyMd.fontSize }}>Loading your ledger…</p>
         </div>
       </div>
     );
@@ -753,7 +747,7 @@ export default function Home() {
 
   return (
     <AppShell activeTab="dashboard">
-      <div style={{ background: PAGE_BG, minHeight: "100vh" }}>
+      <div style={{ background: COLORS.background, minHeight: "100vh" }}>
 
         {/* ── DESKTOP TOP HEADER ── */}
         <style>{`
@@ -764,45 +758,45 @@ export default function Home() {
             .splitease-mobile-header { display: none !important; }
           }
         `}</style>
-        <div className="splitease-desktop-header" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
+        <div className="splitease-desktop-header" style={{ alignItems: "center", justifyContent: "space-between", padding: `${SPACING.md} ${SPACING.lg}`, background: COLORS.surface, borderBottom: `1px solid ${COLORS.outlineVariant}`, position: "sticky", top: 0, zIndex: 30 }}>
           {/* Left: logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 14 }}>
               {initial}
             </div>
-            <span style={{ fontWeight: 900, fontSize: 18, color: "#0f172a", letterSpacing: "-0.3px" }}>SplitEase</span>
+            <span style={{ fontWeight: 900, fontSize: TYPOGRAPHY.headlineMd.fontSize, color: COLORS.onSurface, letterSpacing: "-0.3px" }}>SplitEase</span>
           </div>
           {/* Right: icons */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={17} color="#64748b" />
+          <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
+            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: `1px solid ${COLORS.outlineVariant}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={17} color={COLORS.neutral[500]} />
             </button>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Settings size={17} color="#64748b" />
+            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: `1px solid ${COLORS.outlineVariant}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Settings size={17} color={COLORS.neutral[500]} />
             </button>
-            <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none", boxShadow: `0 2px 8px ${PURPLE}44`, position: "relative" }}>
+            <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none", boxShadow: `0 2px 8px rgba(124, 58, 237, 0.27)`, position: "relative" }}>
               {initial}
-              <div style={{ position: "absolute", bottom: 1, right: 1, width: 8, height: 8, borderRadius: "50%", background: "#FB7185", border: "1.5px solid white" }} />
+              <div style={{ position: "absolute", bottom: 1, right: 1, width: 8, height: 8, borderRadius: "50%", background: COLORS.error, border: `1.5px solid white` }} />
             </Link>
           </div>
         </div>
 
         {/* ── MOBILE HEADER ── */}
-        <div className="splitease-mobile-header" style={{ alignItems: "center", justifyContent: "space-between", padding: "18px 18px 12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 14 }}>{initial}</div>
-            <span style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>SplitEase</span>
+        <div className="splitease-mobile-header" style={{ alignItems: "center", justifyContent: "space-between", padding: `${SPACING.lg} ${SPACING.md} ${SPACING.sm}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: SPACING.lg }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 14 }}>{initial}</div>
+            <span style={{ fontWeight: 900, fontSize: TYPOGRAPHY.headlineMd.fontSize, color: COLORS.onSurface }}>SplitEase</span>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}><Bell size={17} color="#64748b" /></button>
-            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}><Settings size={17} color="#64748b" /></button>
+          <div style={{ display: "flex", gap: SPACING.xs }}>
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: COLORS.surface, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: SHADOWS.xs }}><Bell size={17} color={COLORS.neutral[500]} /></button>
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: COLORS.surface, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: SHADOWS.xs }}><Settings size={17} color={COLORS.neutral[500]} /></button>
           </div>
         </div>
 
         {/* ── TWO-COLUMN LAYOUT ── */}
         <style>{`
           @media (min-width: 1024px) {
-            .splitease-two-col { display: grid !important; grid-template-columns: 1fr 300px !important; gap: 20px !important; padding: 24px !important; padding-top: 20px !important; }
+            .splitease-two-col { display: grid !important; grid-template-columns: 1fr 300px !important; gap: 24px !important; padding: 24px !important; padding-top: 16px !important; }
             .splitease-left-col { padding: 0 !important; }
             .splitease-right-col { display: block !important; }
           }
@@ -810,7 +804,7 @@ export default function Home() {
         <div className="splitease-two-col">
 
           {/* ── LEFT COLUMN ── */}
-          <div style={{ padding: "0 16px 16px" }} className="splitease-left-col">
+          <div style={{ padding: `0 ${SPACING.md} ${SPACING.md}` }} className="splitease-left-col">
 
             {/* Balance hero */}
             {currentUserId && (
@@ -827,9 +821,9 @@ export default function Home() {
             )}
 
             {/* Active Groups */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", margin: 0 }}>Active Groups</h2>
-              <Link href="/groups" style={{ fontSize: 13, fontWeight: 700, color: PURPLE, textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.sm }}>
+              <h2 style={{ fontSize: TYPOGRAPHY.headlineMd.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: 0 }}>Active Groups</h2>
+              <Link href="/groups" style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 700, color: COLORS.primaryContainer, textDecoration: "none", display: "flex", alignItems: "center", gap: SPACING.xs }}>
                 View All <ChevronRight size={14} />
               </Link>
             </div>
@@ -841,7 +835,7 @@ export default function Home() {
                 {groups.map((g) => currentUserId && (
                   <GroupCard key={g.id} group={g} currentUserId={currentUserId} />
                 ))}
-                <Link href="/groups/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "14px", borderRadius: 16, border: `2px dashed #DDD6FE`, textDecoration: "none", color: PURPLE, fontWeight: 700, fontSize: 13, marginTop: 4 }}>
+                <Link href="/groups/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: SPACING.sm, padding: SPACING.md, borderRadius: BORDER_RADIUS.xl, border: `2px dashed ${COLORS.outlineVariant}`, textDecoration: "none", color: COLORS.primaryContainer, fontWeight: 700, fontSize: TYPOGRAPHY.labelMd.fontSize, marginTop: SPACING.xs }}>
                   <Plus size={16} /> Create New Group
                 </Link>
               </>
@@ -862,10 +856,10 @@ export default function Home() {
               </>
             )}
             {!currentUserId && (
-              <div style={{ background: "white", borderRadius: 18, padding: "20px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #F3F0FF" }}>
-                <h3 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 10px" }}>Getting started</h3>
-                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "0 0 14px" }}>Create your first group to start splitting expenses with friends.</p>
-                <Link href="/groups/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px", background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", borderRadius: 12, textDecoration: "none", fontWeight: 700, fontSize: 13, boxShadow: `0 3px 10px ${PURPLE}44` }}>
+              <div style={{ background: COLORS.surface, borderRadius: BORDER_RADIUS["2xl"], padding: SPACING.lg, boxShadow: SHADOWS.sm, border: `1px solid ${COLORS.outlineVariant}` }}>
+                <h3 style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, fontWeight: 800, color: COLORS.onSurface, margin: `0 0 ${SPACING.lg}` }}>Getting started</h3>
+                <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.neutral[500], lineHeight: 1.6, margin: `0 0 ${SPACING.lg}` }}>Create your first group to start splitting expenses with friends.</p>
+                <Link href="/groups/new" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: SPACING.sm, padding: SPACING.md, background: `linear-gradient(135deg, ${COLORS.primaryContainer}, ${COLORS.primary})`, color: "white", borderRadius: BORDER_RADIUS.lg, textDecoration: "none", fontWeight: 700, fontSize: TYPOGRAPHY.labelMd.fontSize, boxShadow: `0 3px 10px rgba(124, 58, 237, 0.27)` }}>
                   <Plus size={15} /> Create Group
                 </Link>
               </div>
@@ -875,13 +869,13 @@ export default function Home() {
 
         {/* ── MOBILE FAB ── */}
         {groups.length > 0 && (
-          <button className="lg:hidden" onClick={() => setShowQuickAdd(true)} style={{ position: "fixed", bottom: 80, right: 20, zIndex: 100, width: 54, height: 54, borderRadius: "50%", background: `linear-gradient(135deg, ${TEAL}, ${TEAL_DARK})`, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 20px ${TEAL}55` }}>
+          <button className="lg:hidden" onClick={() => setShowQuickAdd(true)} style={{ position: "fixed", bottom: 80, right: SPACING.lg, zIndex: 100, width: 54, height: 54, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.secondaryContainer}, ${COLORS.secondary})`, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 20px rgba(139, 78, 247, 0.33)` }}>
             <Plus size={24} color="white" />
           </button>
         )}
 
         {/* ── DESKTOP FAB ── */}
-        <button className="hidden lg:flex" onClick={() => setShowQuickAdd(true)} style={{ position: "fixed", bottom: 28, right: 28, zIndex: 100, width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg, ${TEAL}, ${TEAL_DARK})`, border: "none", cursor: "pointer", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 20px ${TEAL}55` }} title="Add expense">
+        <button className="hidden lg:flex" onClick={() => setShowQuickAdd(true)} style={{ position: "fixed", bottom: SPACING.lg, right: SPACING.lg, zIndex: 100, width: 50, height: 50, borderRadius: "50%", background: `linear-gradient(135deg, ${COLORS.secondaryContainer}, ${COLORS.secondary})`, border: "none", cursor: "pointer", alignItems: "center", justifyContent: "center", boxShadow: `0 6px 20px rgba(139, 78, 247, 0.33)` }} title="Add expense">
           <Plus size={22} color="white" />
         </button>
 

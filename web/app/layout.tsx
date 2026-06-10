@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.className}>
-      <body className="bg-[#f8f5ff] text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+      <body className="bg-surface-500 text-surface-800 antialiased selection:bg-primary-100 selection:text-primary-900">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:shadow"
