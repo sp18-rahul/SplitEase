@@ -332,7 +332,7 @@ function RecentActivityPanel({
           {all.map((exp, idx) => {
             const iPaid = exp.paidById === currentUserId;
             const nameParts = exp.paidBy?.name || (iPaid ? "You" : "Someone");
-            const mySplit = exp.splits.find((s) => s.userId === currentUserId);
+            const mySplit = exp.splits.find((s: any) => s.userId === currentUserId);
             const myAmount = iPaid ? exp.amount : (mySplit ? mySplit.amount : 0);
 
             return (
@@ -432,7 +432,7 @@ function ExpenseDetailModal({
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${SPACING.xs} ${SPACING.lg} ${SPACING.md}` }}>
           <div>
-            <h2 style={{ fontSize: TYPOGRAPHY.headline.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: 0 }}>
+            <h2 style={{ fontSize: TYPOGRAPHY.headlineLg.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: 0 }}>
               {expense.description}
             </h2>
             <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.onSurfaceVariant, margin: `${SPACING.xs} 0 0` }}>
@@ -465,7 +465,7 @@ function ExpenseDetailModal({
             <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, color: COLORS.onSurfaceVariant, margin: 0 }}>Amount</p>
             <p
               style={{
-                fontSize: TYPOGRAPHY.headline.fontSize,
+                fontSize: TYPOGRAPHY.headlineLg.fontSize,
                 fontWeight: 900,
                 color: iPaid ? COLORS.success : COLORS.error,
                 margin: `${SPACING.sm} 0 0`,

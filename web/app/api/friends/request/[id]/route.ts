@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -27,7 +27,8 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const requestId = parseInt(params.id);
+    const { id } = await params;
+    const requestId = parseInt(id);
     const friendRequest = await prisma.friendRequest.findUnique({
       where: { id: requestId },
     });
