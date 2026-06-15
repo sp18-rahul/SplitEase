@@ -24,21 +24,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const email = searchParams.get("email");
 
-    // Without an email filter, only return the current user's own data
-    if (!email) {
-      const me = await prisma.user.findUnique({
-        where: { id: requesterId },
+    if (email) {
+      // Search for specific user by email
+      const users = await prisma.user.findMany({
+        where: { email: { equals: email.toLowerCase() } },
         select: { id: true, name: true, email: true },
       });
-      return NextResponse.json(me ? [me] : []);
+      return NextResponse.json(users);
     }
 
-    // With an email filter, search for that specific user (for adding to groups)
-    const users = await prisma.user.findMany({
-      where: { email: { equals: email.toLowerCase() } },
+    // Return all users (except current user) for group member selection
+    const allUsers = await prisma.user.findMany({
+      where: { id: { not: requesterId } },
       select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
     });
-    return NextResponse.json(users);
+    return NextResponse.json(allUsers);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

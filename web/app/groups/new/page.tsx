@@ -295,7 +295,7 @@ export default function NewGroup() {
             </div>
 
             {/* Member list */}
-            {filteredUsers.length > 0 && (
+            {filteredUsers.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {filteredUsers.map(user => {
                   const isSelected = selectedUsers.includes(user.id);
@@ -325,7 +325,83 @@ export default function NewGroup() {
                   );
                 })}
               </div>
+            ) : memberSearch ? (
+              <div style={{ textAlign: "center", padding: "20px 12px", color: "#7B7487" }}>
+                <p style={{ fontSize: 14, margin: 0 }}>No users found. <strong>Invite a new user below.</strong></p>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "20px 12px", color: "#7B7487" }}>
+                <p style={{ fontSize: 14, margin: 0 }}>Search for members or add new ones below.</p>
+              </div>
             )}
+          </div>
+
+          {/* Add New User Card */}
+          <div style={{ background: "white", borderRadius: 16, border: "1px solid #F0EEFF", padding: 24, marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 24, color: PURPLE }}>person_add</span>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1D1A24", margin: 0 }}>Invite New User</h3>
+            </div>
+
+            {error && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>error</span>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Name</label>
+                <input
+                  type="text"
+                  value={newUserName}
+                  onChange={e => setNewUserName(e.target.value)}
+                  placeholder="e.g., John Doe"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 14, color: "#1D1A24", background: "white", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Email</label>
+                <input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={e => setNewUserEmail(e.target.value)}
+                  placeholder="e.g., john@example.com"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 14, color: "#1D1A24", background: "white", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Password (min 6 chars)</label>
+                <input
+                  type="password"
+                  value={newUserPassword}
+                  onChange={e => setNewUserPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 14, color: "#1D1A24", background: "white", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <button
+                onClick={addUser}
+                disabled={addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 16px", borderRadius: 12, background: (addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) ? "#C4B5FD" : PURPLE, color: "white", border: "none", cursor: (addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14 }}
+              >
+                {addingUser ? (
+                  <>
+                    <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person_add</span>
+                    Create & Add to Group
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Create Group Button */}
