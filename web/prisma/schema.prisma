@@ -16,6 +16,7 @@ model User {
   password  String
   image     String?
   upiId     String?
+  theme     String  @default("system")
   createdAt DateTime @default(now())
 
   groups        GroupMember[]

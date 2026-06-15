@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { AppShell } from "@/app/components/AppSidebar";
+import { useTheme } from "@/lib/theme-context";
 
 interface Group {
   id: number;
@@ -26,6 +27,7 @@ interface GroupBalance {
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const { theme, setTheme: setThemePreference } = useTheme();
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupBalances, setGroupBalances] = useState<GroupBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,8 @@ export default function ProfilePage() {
   const [savingUpi, setSavingUpi] = useState(false);
   const [upiError, setUpiError] = useState("");
   const [upiSuccess, setUpiSuccess] = useState(false);
+
+  const [themeSuccess, setThemeSuccess] = useState(false);
 
   const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : null;
 
@@ -108,6 +112,16 @@ export default function ProfilePage() {
       setUpiError("Network error. Please try again.");
     } finally {
       setSavingUpi(false);
+    }
+  };
+
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
+    try {
+      await setThemePreference(newTheme);
+      setThemeSuccess(true);
+      setTimeout(() => setThemeSuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to update theme:', error);
     }
   };
 
@@ -388,10 +402,21 @@ export default function ProfilePage() {
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#1D1A24", margin: "0 0 2px" }}>Dark Mode</p>
                 <p style={{ fontSize: 12, color: "#7B7487", margin: 0 }}>Switch to dark theme</p>
               </div>
-              <div style={{ width: 44, height: 24, borderRadius: 999, background: "#E4D9F7", position: "relative", cursor: "pointer" }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "white", position: "absolute", top: 2, left: 2, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-              </div>
+              <select
+                value={theme}
+                onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'system')}
+                style={{ border: "1.5px solid #E4D9F7", borderRadius: 10, padding: "8px 12px", fontSize: 14, color: "#1D1A24", outline: "none", cursor: "pointer" }}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
             </div>
+            {themeSuccess && (
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", padding: "10px 12px", borderRadius: 8, fontSize: 12, marginBottom: 16, animation: "slideInDown 0.3s ease-out" }}>
+                ✓ Theme preference updated
+              </div>
+            )}
 
             {/* Smart Split */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 16 }}>
