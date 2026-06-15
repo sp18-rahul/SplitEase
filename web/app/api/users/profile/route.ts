@@ -76,12 +76,12 @@ export async function GET(request: NextRequest) {
     try {
       user = await (prisma.user as any).findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, createdAt: true, upiId: true },
+        select: { id: true, name: true, email: true, createdAt: true, upiId: true, theme: true },
       });
     } catch {
       user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, createdAt: true },
+        select: { id: true, name: true, email: true, createdAt: true, theme: true },
       });
     }
 
