@@ -5,20 +5,32 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/app/components/AppSidebar";
-import { Bell, Settings } from "lucide-react";
 
-const PURPLE = "#7C3AED";
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const SYM: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+const sym = (code?: string) => SYM[code || "INR"] || "₹";
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  food: "🍽️", transport: "🚗", housing: "🏠", entertainment: "🎉",
-  shopping: "🛒", travel: "✈️", health: "💊", utilities: "🔧", other: "💡",
-};
+const AVATAR_COLORS = ["#7C3AED", "#10B981", "#F59E0B", "#3B82F6", "#EF4444", "#8B5CF6", "#EC4899"];
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥", AED: "د.إ",
-};
-const sym = (code?: string) => CURRENCY_SYMBOLS[code || "INR"] || "₹";
+function timeAgo(dateStr: string) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1)
+    return `Yesterday, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  return d.toLocaleDateString("en-US", {
+    month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
 
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface ActivityItem {
   id: string;
   type: "expense" | "settlement";
@@ -30,28 +42,24 @@ interface ActivityItem {
   createdAt: string;
   groupId: number;
   groupName: string;
-  groupEmoji?: string;
   currency?: string;
 }
-
-interface Group {
-  id: number;
-  name: string;
-  emoji?: string;
-  currency?: string;
-}
-
+interface Group { id: number; name: string; emoji?: string; currency?: string; }
 type FilterTab = "all" | "expenses" | "settlements";
 
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function ActivityPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [groups, setGroups]   = useState<Group[]>([]);
+  const [items, setItems]     = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterTab>("all");
-  const [groupFilter, setGroupFilter] = useState<number | null>(null);
+  const [filter, setFilter]   = useState<FilterTab>("all");
+  const [search, setSearch]   = useState("");
+
+  const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : null;
+  const initial = session?.user?.name?.charAt(0).toUpperCase() || "?";
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/signin");
@@ -59,298 +67,270 @@ export default function ActivityPage() {
 
   useEffect(() => {
     if (status !== "authenticated") return;
-
-    const fetchAll = async () => {
+    (async () => {
       try {
-        const groupsRes = await fetch("/api/groups");
-        const groupsList: Group[] = await groupsRes.json();
-        setGroups(Array.isArray(groupsList) ? groupsList : []);
-
-        if (groupsList.length > 0) {
-          const activityResults = await Promise.all(
-            groupsList.map(g =>
+        const gList: Group[] = await fetch("/api/groups")
+          .then(r => r.json())
+          .then(d => (Array.isArray(d) ? d : []));
+        setGroups(gList);
+        if (gList.length) {
+          const results = await Promise.all(
+            gList.map(g =>
               fetch(`/api/groups/${g.id}/activity`)
                 .then(r => r.json())
-                .then(data => (Array.isArray(data) ? data : []).map((item: any) => ({
-                  ...item,
-                  groupId: g.id,
-                  groupName: g.name,
-                  groupEmoji: g.emoji,
-                  currency: g.currency,
-                })))
+                .then((d: any[]) =>
+                  (Array.isArray(d) ? d : []).map(item => ({
+                    ...item, groupId: g.id, groupName: g.name, currency: g.currency,
+                  }))
+                )
                 .catch(() => [])
             )
           );
-          const merged = activityResults.flat().sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          setItems(
+            results.flat().sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
           );
-          setActivityItems(merged);
         }
-      } catch (err) {
-        console.error("Error fetching activity:", err);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchAll();
+    })();
   }, [status]);
 
-  const filtered = useMemo(() => {
-    return activityItems.filter(item => {
-      if (filter === "expenses" && item.type !== "expense") return false;
-      if (filter === "settlements" && item.type !== "settlement") return false;
-      if (groupFilter !== null && item.groupId !== groupFilter) return false;
-      return true;
-    });
-  }, [activityItems, filter, groupFilter]);
+  // ── Filtering ───────────────────────────────────────────────────────────────
+  const filtered = useMemo(
+    () =>
+      items.filter(item => {
+        if (search && !item.title.toLowerCase().includes(search.toLowerCase())) return false;
+        if (filter === "expenses" && item.type !== "expense") return false;
+        if (filter === "settlements" && item.type !== "settlement") return false;
+        return true;
+      }),
+    [items, filter, search]
+  );
 
-  // Group by relative date label
-  const groupedByDate = useMemo(() => {
+  // ── Date grouping ───────────────────────────────────────────────────────────
+  const grouped = useMemo(() => {
     const sections: { label: string; items: ActivityItem[] }[] = [];
-    let currentLabel = "";
+    let cur = "";
     filtered.forEach(item => {
       const d = new Date(item.createdAt);
       const now = new Date();
-      const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-      let label: string;
-      if (diffDays === 0) label = "Today";
-      else if (diffDays === 1) label = "Yesterday";
-      else if (diffDays < 7) label = d.toLocaleDateString("en-IN", { weekday: "long" });
-      else if (d.getFullYear() === now.getFullYear())
-        label = d.toLocaleDateString("en-IN", { month: "long" });
-      else
-        label = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-
-      if (label !== currentLabel) {
-        sections.push({ label, items: [] });
-        currentLabel = label;
-      }
+      const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+      const label =
+        diff === 0 ? "TODAY" :
+        diff === 1 ? "YESTERDAY" :
+        diff < 7  ? "LAST WEEK" :
+        d.getFullYear() === now.getFullYear()
+          ? d.toLocaleDateString("en-US", { month: "long" }).toUpperCase()
+          : d.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+      if (label !== cur) { sections.push({ label, items: [] }); cur = label; }
       sections[sections.length - 1].items.push(item);
     });
     return sections;
   }, [filtered]);
 
-  const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : null;
-
-  const initial = session?.user?.name?.charAt(0).toUpperCase() || "?";
-
-  if (loading) {
+  // ── Loading ─────────────────────────────────────────────────────────────────
+  if (loading)
     return (
       <AppShell activeTab="activity">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F0EEFF" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            <div style={{ width: 48, height: 48, border: "4px solid #ede9fe", borderTopColor: PURPLE, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-            <p style={{ color: PURPLE, fontWeight: 600, fontSize: 14 }}>Loading activity…</p>
-          </div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ minHeight: "100vh", background: "#F8F5FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 48, height: 48, border: "4px solid #EDE9FE", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       </AppShell>
     );
-  }
 
   return (
     <AppShell activeTab="activity">
-      <div style={{ background: "#F0EEFF", minHeight: "100vh" }}>
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-          @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-          .se-act-deskhead { display: none; }
-          .se-act-mobhead  { display: flex; }
-          .se-act-filters  { padding: 16px 16px 0; }
-          .se-act-content  { padding: 0 16px 100px; }
-          @media (min-width: 1024px) {
-            .se-act-deskhead { display: flex !important; }
-            .se-act-mobhead  { display: none !important; }
-            .se-act-filters  { padding: 20px 32px 0 !important; }
-            .se-act-content  { padding: 0 32px 60px !important; max-width: 760px; }
-          }
-        `}</style>
+      <div style={{ minHeight: "100vh", background: "#F8F5FF" }}>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-        {/* ── DESKTOP HEADER ── */}
-        <div className="se-act-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Activity</h1>
-            <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>
-              {activityItems.length} event{activityItems.length !== 1 ? "s" : ""} · {groups.length} group{groups.length !== 1 ? "s" : ""}
-            </p>
+        {/* ── FIXED HEADER ─────────────────────────────────────────────────── */}
+        <div
+          className="se-header"
+          style={{
+            height: 72, background: "white", borderBottom: "1px solid #F0EEFF",
+            display: "flex", alignItems: "center", padding: "0 28px", gap: 16,
+          }}
+        >
+          <div style={{ flex: 1, position: "relative" }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: "#9CA3AF" }}
+            >
+              search
+            </span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search activity..."
+              style={{
+                width: "100%", background: "#F5F0FF", border: "1px solid #EDE9FE",
+                borderRadius: 999, padding: "9px 16px 9px 42px",
+                fontSize: 14, color: "#1D1A24", outline: "none", boxSizing: "border-box",
+              }}
+            />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ padding: "7px 14px", background: "#F0FDF4", borderRadius: 20, border: "1px solid #BBF7D0" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#16A34A" }}>{activityItems.filter(i => i.type === "expense").length} expenses</span>
-            </div>
-            <div style={{ padding: "7px 14px", background: "#F5F3FF", borderRadius: 20, border: "1px solid #DDD6FE" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: PURPLE }}>{activityItems.filter(i => i.type === "settlement").length} settlements</span>
-            </div>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Bell size={17} color="#64748b" /></button>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Settings size={17} color="#64748b" /></button>
-            <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>{initial}</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#7B7487" }}>notifications</span>
+            </button>
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#7B7487" }}>settings</span>
+            </button>
+            <Link href="/profile" style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "linear-gradient(135deg, #7C3AED, #5B21B6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none",
+            }}>{initial}</Link>
           </div>
         </div>
 
-        {/* ── MOBILE HEADER ── */}
-        <div className="se-act-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0 }}>Activity</h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>{activityItems.length} events across {groups.length} group{groups.length !== 1 ? "s" : ""}</p>
-          </div>
-        </div>
+        {/* ── CONTENT ──────────────────────────────────────────────────────── */}
+        <div style={{ padding: "100px 28px 60px" }}>
 
-        {/* ── FILTERS ── */}
-        <div className="se-act-filters">
-          <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
-            {(["all", "expenses", "settlements"] as FilterTab[]).map(f => {
-              const labels: Record<FilterTab, string> = { all: "All Activity", expenses: "Expenses", settlements: "Settlements" };
-              const active = filter === f;
-              return (
-                <button key={f} onClick={() => setFilter(f)} style={{ flexShrink: 0, padding: "7px 18px", borderRadius: 20, border: `1.5px solid ${active ? PURPLE : "#e2e8f0"}`, background: active ? `linear-gradient(135deg, ${PURPLE}, #5B21B6)` : "white", color: active ? "white" : "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s", boxShadow: active ? `0 3px 10px ${PURPLE}33` : "none" }}>
-                  {labels[f]}
+          {/* Title row + filter tabs */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28, gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <h1 style={{ fontSize: 34, fontWeight: 900, color: "#1D1A24", margin: 0, letterSpacing: "-0.5px" }}>Activity</h1>
+              <p style={{ fontSize: 14, color: "#7B7487", margin: "6px 0 0" }}>
+                Track your recent shared expenses and settlements
+              </p>
+            </div>
+
+            {/* Filter tabs */}
+            <div style={{ display: "flex", gap: 5, background: "white", borderRadius: 999, padding: 5, border: "1px solid #F0EEFF", flexShrink: 0 }}>
+              {(["all", "expenses", "settlements"] as FilterTab[]).map(key => (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  style={{
+                    borderRadius: 999, padding: "8px 18px",
+                    fontSize: 13, fontWeight: filter === key ? 700 : 500,
+                    background: filter === key ? "#7C3AED" : "transparent",
+                    color: filter === key ? "white" : "#4A4455",
+                    border: "none", cursor: "pointer", whiteSpace: "nowrap",
+                    transition: "all 0.15s", textTransform: "capitalize",
+                  }}
+                >
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
                 </button>
-              );
-            })}
-            {groups.length > 1 && (
-              <>
-                <div style={{ width: 1, background: "#e2e8f0", margin: "4px 4px" }} />
-                {groups.map(g => (
-                  <button key={g.id} onClick={() => setGroupFilter(groupFilter === g.id ? null : g.id)} style={{ flexShrink: 0, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${groupFilter === g.id ? PURPLE : "#e2e8f0"}`, background: groupFilter === g.id ? "#EDE9FE" : "white", color: groupFilter === g.id ? PURPLE : "#64748b", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    {g.emoji || "💰"} {g.name}
-                  </button>
-                ))}
-              </>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* ── ACTIVITY LIST ── */}
-        <div className="se-act-content">
+          {/* ── ACTIVITY LIST ──────────────────────────────────────────────── */}
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE" }}>
-              <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>🔔</span>
-              <p style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>No activity yet</p>
-              <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20, lineHeight: 1.6 }}>
+            <div style={{ background: "white", borderRadius: 18, border: "1px solid #F0EEFF", padding: "56px 40px", textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#F0EEFF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 28, color: "#9CA3AF" }}>history</span>
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#1D1A24", margin: "0 0 8px" }}>No activity yet</p>
+              <p style={{ fontSize: 13, color: "#7B7487", margin: "0 0 20px" }}>
                 {groups.length === 0
-                  ? "Create a group and start adding expenses to see activity here."
-                  : "Activity will appear here when you or your group members add expenses or settle up."}
+                  ? "Create a group and start adding expenses."
+                  : "Activity will appear here when expenses are added."}
               </p>
               {groups.length === 0 && (
-                <Link
-                  href="/groups/new"
-                  style={{ display: "inline-block", padding: "11px 24px", background: PURPLE, color: "white", borderRadius: 12, fontSize: 14, fontWeight: 700, textDecoration: "none" }}
-                >
+                <Link href="/groups/new" style={{ color: "#7C3AED", fontWeight: 600, fontSize: 13 }}>
                   Create a Group →
                 </Link>
               )}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 28, animation: "fadeIn 0.3s ease" }}>
-              {groupedByDate.map(({ label, items }) => (
-                <div key={label}>
-                  {/* Date section header */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
-                      {label}
-                    </span>
-                    <div style={{ flex: 1, height: 1, background: "#f1f5f9" }} />
-                    <span style={{ fontSize: 11, color: "#cbd5e1", fontWeight: 500, whiteSpace: "nowrap" }}>
-                      {items.length} event{items.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
+            <>
+              {grouped.map(({ label, items: sectionItems }) => (
+                <div key={label} style={{ marginBottom: 28 }}>
+                  {/* Date label */}
+                  <p style={{ fontSize: 11, fontWeight: 800, color: "#9CA3AF", letterSpacing: "0.12em", margin: "0 0 12px 2px" }}>
+                    {label}
+                  </p>
 
-                  {/* Items */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {items.map(item => {
-                      const isSettlement = item.type === "settlement";
+                  {/* Activity items card */}
+                  <div style={{ background: "white", borderRadius: 18, border: "1px solid #F0EEFF", overflow: "hidden" }}>
+                    {sectionItems.map((item, idx) => {
                       const s = sym(item.currency);
-                      const isMe = currentUserId && item.actor.id === currentUserId;
-                      const time = new Date(item.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+                      const isSettlement = item.type === "settlement";
+                      const avatarColor = AVATAR_COLORS[item.actor.id % AVATAR_COLORS.length];
+                      const badgeBg = isSettlement ? "#10B981" : "#7C3AED";
+                      const badgeIcon = isSettlement ? "check" : "receipt";
+                      const amountPrefix = isSettlement ? "+" : "−";
+                      const amountColor = isSettlement ? "#10B981" : "#E11D48";
+                      const amountLabel = isSettlement ? "Received" : "Your share";
 
                       return (
-                        <Link
-                          key={item.id}
-                          href={`/groups/${item.groupId}`}
-                          style={{ textDecoration: "none" }}
-                        >
+                        <Link key={item.id} href={`/groups/${item.groupId}`} style={{ textDecoration: "none", display: "block" }}>
                           <div
                             style={{
-                              background: "white",
-                              borderRadius: 16,
-                              border: "1px solid #e2e8f0",
-                              padding: "14px 16px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 14,
-                              transition: "all 0.15s",
-                              cursor: "pointer",
+                              display: "flex", alignItems: "center", gap: 14,
+                              padding: "16px 20px",
+                              borderBottom: idx < sectionItems.length - 1 ? "1px solid #F5F0FF" : "none",
+                              transition: "background 0.12s",
                             }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLDivElement).style.borderColor = "#c4b5fd";
-                              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px rgba(124,58,237,0.08)";
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLDivElement).style.borderColor = "#e2e8f0";
-                              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#FAFAFE")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                           >
-                            {/* Icon */}
-                            <div style={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: 13,
-                              flexShrink: 0,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 20,
-                              background: isSettlement ? "#f0fdf4" : "#EDE9FE",
-                            }}>
-                              {isSettlement ? "🤝" : (CATEGORY_EMOJIS[item.category || "other"] || "💡")}
+                            {/* Avatar + badge */}
+                            <div style={{ position: "relative", flexShrink: 0 }}>
+                              <div style={{
+                                width: 48, height: 48, borderRadius: "50%",
+                                background: avatarColor,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 19, fontWeight: 900, color: "white",
+                              }}>
+                                {item.actor.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div style={{
+                                position: "absolute", bottom: -1, right: -1,
+                                width: 20, height: 20, borderRadius: "50%",
+                                background: badgeBg, border: "2px solid white",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}>
+                                <span
+                                  className="material-symbols-outlined"
+                                  style={{ fontSize: 11, color: "white", fontVariationSettings: "'FILL' 1" }}
+                                >
+                                  {badgeIcon}
+                                </span>
+                              </div>
                             </div>
 
-                            {/* Content */}
+                            {/* Description + time */}
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                                <div style={{ minWidth: 0 }}>
-                                  <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {item.title}
-                                  </p>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
-                                    <span style={{ fontSize: 12, color: "#64748b" }}>
-                                      {isMe ? "You" : item.actor.name}
-                                    </span>
-                                    <span style={{ fontSize: 10, color: "#cbd5e1" }}>·</span>
-                                    <span style={{
-                                      fontSize: 11,
-                                      fontWeight: 600,
-                                      color: PURPLE,
-                                      background: "#EDE9FE",
-                                      padding: "1px 7px",
-                                      borderRadius: 20,
-                                    }}>
-                                      {item.groupEmoji || "💰"} {item.groupName}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Amount + time */}
-                                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <p style={{
-                                    fontSize: 15,
-                                    fontWeight: 900,
-                                    margin: 0,
-                                    color: isSettlement ? "#16a34a" : "#0f172a",
-                                  }}>
-                                    {isSettlement ? "✓ " : ""}{s}{item.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                                  </p>
-                                  <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>{time}</span>
-                                </div>
+                              <p style={{ fontSize: 14, color: "#1D1A24", margin: "0 0 5px", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <strong>{item.actor.name}</strong>{" "}
+                                {isSettlement ? (
+                                  <>
+                                    settled up with you for{" "}
+                                    <span style={{ color: "#7C3AED", fontWeight: 600 }}>{item.title}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    added{" "}
+                                    <span style={{ color: "#7C3AED", fontWeight: 600 }}>"{item.title}"</span>
+                                    {" "}in {item.groupName}
+                                  </>
+                                )}
+                              </p>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 13, color: "#9CA3AF" }}>schedule</span>
+                                <span style={{ fontSize: 12, color: "#9CA3AF" }}>{timeAgo(item.createdAt)}</span>
                               </div>
+                            </div>
 
-                              {/* Subtitle */}
-                              {item.subtitle && (
-                                <p style={{ fontSize: 12, color: "#94a3b8", margin: "4px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {item.subtitle}
-                                </p>
-                              )}
+                            {/* Amount */}
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <p style={{ fontSize: 18, fontWeight: 900, color: amountColor, margin: "0 0 2px", letterSpacing: "-0.3px" }}>
+                                {amountPrefix} {s}{item.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                              <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0, fontWeight: 500 }}>
+                                {amountLabel}
+                              </p>
                             </div>
                           </div>
                         </Link>
@@ -360,11 +340,29 @@ export default function ActivityPage() {
                 </div>
               ))}
 
-              {/* Footer */}
-              <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", paddingBottom: 8 }}>
-                Showing {filtered.length} of {activityItems.length} events
-              </p>
-            </div>
+              {/* End of recent updates */}
+              <div style={{
+                background: "white", borderRadius: 18, border: "1px dashed #E4D9F7",
+                padding: "40px 32px", textAlign: "center", marginTop: 8,
+              }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: "50%", background: "#F5F3FF",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 14px",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 26, color: "#9CA3AF" }}>history</span>
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#1D1A24", margin: "0 0 8px" }}>
+                  End of recent updates
+                </p>
+                <p style={{ fontSize: 14, color: "#7B7487", margin: "0 0 16px", maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
+                  You have seen all activity from the past 7 days. Go to History for older records.
+                </p>
+                <button style={{ color: "#7C3AED", fontWeight: 700, fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>
+                  View Older History
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>

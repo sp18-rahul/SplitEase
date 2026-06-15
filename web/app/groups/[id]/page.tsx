@@ -4,14 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import {
-  ArrowLeft, Plus, Users, Wallet, Activity, User,
-  CheckCircle2, AlertCircle, Handshake,
-  PartyPopper, Receipt, ArrowRight, Edit, Trash2,
-  ChevronDown, ChevronUp, UserMinus, History, X,
-  TrendingUp, TrendingDown, Check, UserPlus, Mail,
-  Settings, Download, Bell, Copy
-} from "lucide-react";
+
 import { AppShell } from "@/app/components/AppSidebar";
 
 interface Member {
@@ -421,7 +414,7 @@ export default function GroupDetail() {
       <AppShell activeTab="groups">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: PAGE_BG }}>
           <div style={{ background: "white", borderRadius: 24, padding: "40px 32px", textAlign: "center", maxWidth: 400, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-            <AlertCircle style={{ width: 64, height: 64, color: "#fb7185", margin: "0 auto 16px" }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 64, color: "#fb7185", display: "block", margin: "0 auto 16px", fontVariationSettings: "'FILL' 1" }}>error</span>
             <p style={{ fontSize: 24, fontWeight: 900, color: "#1e293b", marginBottom: 8 }}>Group not found</p>
             <p style={{ color: "#64748b", marginBottom: 24 }}>The requested group does not exist or you don't have access.</p>
             <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: "none" }}>Return to Dashboard</Link>
@@ -459,7 +452,7 @@ export default function GroupDetail() {
       <div className="se-gid-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
-            <ArrowLeft size={16} color={PURPLE} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: PURPLE }}>arrow_back</span>
           </Link>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
@@ -473,7 +466,7 @@ export default function GroupDetail() {
             onClick={() => setShowGroupSettings(!showGroupSettings)}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 12, background: showGroupSettings ? "#EDE9FE" : "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", fontSize: 13, fontWeight: 600, color: showGroupSettings ? PURPLE : "#64748b" }}
           >
-            <Settings size={15} /> Settings
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>settings</span> Settings
           </button>
           <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>
             {initial}
@@ -485,7 +478,7 @@ export default function GroupDetail() {
       <div className="se-gid-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
-            <ArrowLeft size={18} color={PURPLE} />
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: PURPLE }}>arrow_back</span>
           </Link>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>
@@ -497,7 +490,7 @@ export default function GroupDetail() {
           onClick={() => setShowGroupSettings(!showGroupSettings)}
           style={{ width: 38, height: 38, borderRadius: "50%", background: showGroupSettings ? "#EDE9FE" : "white", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          <Settings size={18} color={showGroupSettings ? PURPLE : "#64748b"} />
+          <span className="material-symbols-outlined" style={{ fontSize: 18, color: showGroupSettings ? PURPLE : "#64748b" }}>settings</span>
         </button>
       </div>
 
@@ -519,11 +512,11 @@ export default function GroupDetail() {
             Your Balance
           </p>
           <p style={{ fontSize: 40, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1px", lineHeight: 1 }}>
-            {sym}{Math.abs(myBalance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            {sym}{Math.abs(myBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
           </p>
           {myBalance !== 0 && (
             <p style={{ fontSize: 13, color: myBalance > 0 ? "#A7F3D0" : "#FCA5A5", fontWeight: 600, margin: "0 0 16px", display: "flex", alignItems: "center", gap: 4 }}>
-              {myBalance > 0 ? <TrendingUp size={14}/> : <TrendingDown size={14}/>}
+              {myBalance > 0 ? <span className="material-symbols-outlined" style={{ fontSize: 14 }}>trending_up</span> : <span className="material-symbols-outlined" style={{ fontSize: 14 }}>trending_down</span>}
               {myBalance > 0 ? "You are owed money" : "You owe money"}
             </p>
           )}
@@ -555,7 +548,7 @@ export default function GroupDetail() {
                 }}
                 style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(255,255,255,0.2)", color: "white", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.25)", cursor: "pointer", backdropFilter: "blur(8px)" }}
               >
-                <CheckCircle2 size={16} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                 Settle Up
               </button>
             )}
@@ -563,7 +556,7 @@ export default function GroupDetail() {
               href={`/groups/${groupId}/expenses/new`}
               style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "white", color: "#7C3AED", fontWeight: 700, fontSize: 14, padding: "12px 16px", borderRadius: 12, textDecoration: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }}
             >
-              <Plus size={16} />
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
               Add Expense
             </Link>
           </div>
@@ -573,7 +566,7 @@ export default function GroupDetail() {
         {/* Success Toast */}
         {settleSuccess && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-            <Check style={{ width: 20, height: 20 }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>check</span>
             {settleSuccess}
           </div>
         )}
@@ -581,7 +574,7 @@ export default function GroupDetail() {
         {/* Remind Toast */}
         {remindToast && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-            <Bell style={{ width: 20, height: 20 }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>notifications</span>
             {remindToast}
           </div>
         )}
@@ -589,7 +582,7 @@ export default function GroupDetail() {
         {/* Duplicate Toast */}
         {duplicateSuccess && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-            <Check style={{ width: 20, height: 20 }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>check</span>
             {duplicateSuccess}
           </div>
         )}
@@ -659,7 +652,7 @@ export default function GroupDetail() {
         <div style={{ background: "white", borderRadius: 16, padding: "18px 16px", marginBottom: 20, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-              <Handshake style={{ width: 18, height: 18, color: '#7C3AED' }} />
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#7C3AED' }}>handshake</span>
               {transactions.length > 0 ? 'Settle Up' : 'All Settled!'}
             </h2>
             {settlements.length > 0 && (
@@ -667,9 +660,9 @@ export default function GroupDetail() {
                 onClick={() => setShowHistory(!showHistory)}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer' }}
               >
-                <History style={{ width: 16, height: 16 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>history</span>
                 History ({settlements.length})
-                {showHistory ? <ChevronUp style={{ width: 12, height: 12 }} /> : <ChevronDown style={{ width: 12, height: 12 }} />}
+                {showHistory ? <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_less</span> : <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_more</span>}
               </button>
             )}
           </div>
@@ -677,7 +670,7 @@ export default function GroupDetail() {
           {transactions.length === 0 ? (
             <div style={{ borderRadius: 16, background: 'linear-gradient(to bottom, #f0fdf4, #f0fdf4)', padding: 32, textAlign: 'center', border: '1px solid #bbf7d0' }}>
               <div style={{ width: 64, height: 64, background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <PartyPopper style={{ width: 32, height: 32, color: '#22c55e' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#22c55e', fontVariationSettings: "'FILL' 1" }}>celebration</span>
               </div>
               <p style={{ fontSize: 18, fontWeight: 900, color: '#166534', marginBottom: 4 }}>Everyone is settled up!</p>
               <p style={{ fontSize: 14, color: '#16a34a' }}>No payments needed right now.</p>
@@ -710,11 +703,11 @@ export default function GroupDetail() {
                           <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>pays</p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-                          <ArrowRight style={{ width: 16, height: 16, color: '#94a3b8' }} />
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#94a3b8' }}>arrow_forward</span>
                           <span style={{ fontWeight: 900, color: '#7C3AED', background: '#EDE9FE', padding: '4px 10px', borderRadius: 20, fontSize: 14, border: '1px solid #C4B5FD' }}>
                             {sym}{t.amount.toFixed(0)}
                           </span>
-                          <ArrowRight style={{ width: 16, height: 16, color: '#94a3b8' }} />
+                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#94a3b8' }}>arrow_forward</span>
                         </div>
                         <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
                           <p style={{ fontWeight: 700, color: '#0f172a', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{toName}</p>
@@ -737,7 +730,7 @@ export default function GroupDetail() {
                                 onClick={() => { setSettleTransaction(t); setShowSettleModal(true); }}
                                 style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" }}
                               >
-                                <Check style={{ width: 16, height: 16 }} />
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                                 Mark as Paid
                               </button>
                               {!toUpiId && (
@@ -786,7 +779,7 @@ export default function GroupDetail() {
                               onClick={() => { setSettleTransaction(t); setShowSettleModal(true); }}
                               style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" }}
                             >
-                              <Check style={{ width: 16, height: 16 }} />
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                               Mark as Settled
                             </button>
                             <button
@@ -821,7 +814,7 @@ export default function GroupDetail() {
                               {sendingRemindId === t.fromUserId ? (
                                 <div style={{ width: 14, height: 14, border: "2px solid #cbd5e1", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
                               ) : (
-                                <Bell style={{ width: 16, height: 16 }} />
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>notifications</span>
                               )}
                               {sendingRemindId === t.fromUserId ? 'Sending…' : 'Remind'}
                             </button>
@@ -839,13 +832,13 @@ export default function GroupDetail() {
           {showHistory && settlements.length > 0 && (
             <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <History style={{ width: 16, height: 16 }} /> Settlement History
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>history</span> Settlement History
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[...settlements].reverse().map((s) => (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 14, padding: 12, borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle2 style={{ width: 16, height: 16, color: '#22c55e', flexShrink: 0 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#22c55e', flexShrink: 0, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                       <span style={{ color: '#334155' }}>
                         <strong>{getMemberName(s.fromUserId)}</strong>
                         {' paid '}
@@ -855,7 +848,7 @@ export default function GroupDetail() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ textAlign: 'right' }}>
                         <p style={{ fontWeight: 900, color: '#16a34a', margin: 0 }}>{sym}{s.amount.toFixed(0)}</p>
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>{new Date(s.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                        <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>{new Date(s.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</p>
                       </div>
                       {currentUserId && (s.fromUserId === currentUserId || s.toUserId === currentUserId) && (
                         <button
@@ -864,7 +857,7 @@ export default function GroupDetail() {
                           title="Remove this settlement"
                           style={{ background: 'none', border: 'none', cursor: deletingSettlementId === s.id ? 'not-allowed' : 'pointer', padding: 4, color: '#f87171', opacity: deletingSettlementId === s.id ? 0.5 : 1, display: 'flex', alignItems: 'center' }}
                         >
-                          <X style={{ width: 15, height: 15 }} />
+                          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>close</span>
                         </button>
                       )}
                     </div>
@@ -879,7 +872,7 @@ export default function GroupDetail() {
         <div style={{ background: "white", borderRadius: 16, padding: "18px 16px", marginBottom: 20, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-              <Users style={{ width: 18, height: 18, color: '#7C3AED' }} /> Members & Balances
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#7C3AED' }}>group</span> Members & Balances
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
@@ -891,7 +884,7 @@ export default function GroupDetail() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: showInvitePanel ? '#6D28D9' : '#64748b', background: showInvitePanel ? '#EDE9FE' : '#f1f5f9', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer' }}
                 title="Share invite link"
               >
-                <Copy style={{ width: 14, height: 14 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
                 Share
               </button>
               <button
@@ -899,7 +892,7 @@ export default function GroupDetail() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#7C3AED', background: 'none', border: 'none', cursor: 'pointer' }}
                 title="Add member"
               >
-                <UserPlus style={{ width: 16, height: 16 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person_add</span>
                 Add
               </button>
             </div>
@@ -909,7 +902,7 @@ export default function GroupDetail() {
           {showInvitePanel && (
             <div style={{ marginBottom: 16, borderRadius: 16, background: '#f5f3ff', border: '1px solid #ddd6fe', padding: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Copy style={{ width: 14, height: 14 }} /> Share invite link
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span> Share invite link
               </p>
               <p style={{ fontSize: 11, color: '#8b5cf6', marginBottom: 12 }}>
                 Anyone with this link can join the group — no email needed.
@@ -933,9 +926,9 @@ export default function GroupDetail() {
                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: copiedInvite ? '#d1fae5' : '#7c3aed', color: copiedInvite ? '#166534' : 'white', fontWeight: 700, fontSize: 13, padding: '9px 12px', borderRadius: 10, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                     >
                       {copiedInvite ? (
-                        <><CheckCircle2 style={{ width: 14, height: 14 }} /> Copied!</>
+                        <><span className="material-symbols-outlined" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>check_circle</span> Copied!</>
                       ) : (
-                        <><Copy style={{ width: 14, height: 14 }} /> Copy Link</>
+                        <><span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span> Copy Link</>
                       )}
                     </button>
                     <button
@@ -956,7 +949,7 @@ export default function GroupDetail() {
                   onClick={handleGenerateInvite}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#7c3aed', color: 'white', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 10, border: 'none', cursor: 'pointer' }}
                 >
-                  <Copy style={{ width: 14, height: 14 }} /> Generate Link
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span> Generate Link
                 </button>
               )}
             </div>
@@ -966,7 +959,7 @@ export default function GroupDetail() {
           {showAddMember && (
             <div style={{ marginBottom: 16, borderRadius: 16, background: '#EDE9FE', border: '1px solid #C4B5FD', padding: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#6D28D9', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Mail style={{ width: 14, height: 14 }} /> Invite by email
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>mail</span> Invite by email
               </p>
               <p style={{ fontSize: 11, color: '#6366f1', marginBottom: 12 }}>
                 If they don't have an account, one will be created and credentials emailed to them.
@@ -1008,7 +1001,7 @@ export default function GroupDetail() {
                     </>
                   ) : (
                     <>
-                      <Mail style={{ width: 14, height: 14 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>mail</span>
                       Send Invite
                     </>
                   )}
@@ -1070,7 +1063,7 @@ export default function GroupDetail() {
                       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#e11d48'; (e.currentTarget as HTMLButtonElement).style.background = '#fff1f2'; }}
                       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8'; (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
                     >
-                      <UserMinus style={{ width: 14, height: 14 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>person_remove</span>
                     </button>
                   </div>
                 </div>
@@ -1084,7 +1077,7 @@ export default function GroupDetail() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <h2 style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                <Receipt style={{ width: 18, height: 18, color: '#7C3AED' }} /> {showActivity ? 'Activity' : 'Expenses'}
+                <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#7C3AED' }}>receipt</span> {showActivity ? 'Activity' : 'Expenses'}
               </h2>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1097,7 +1090,7 @@ export default function GroupDetail() {
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: showActivity ? '#7C3AED' : '#64748b', background: showActivity ? '#EDE9FE' : '#f1f5f9', padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer' }}
               >
-                <History style={{ width: 14, height: 14 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>history</span>
                 {showActivity ? 'Expenses' : 'Activity'}
               </button>
               {/* Export button */}
@@ -1106,7 +1099,7 @@ export default function GroupDetail() {
                 style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer' }}
                 title="Export CSV"
               >
-                <Download style={{ width: 14, height: 14 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>download</span>
                 Export
               </button>
             </div>
@@ -1154,7 +1147,7 @@ export default function GroupDetail() {
                           <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                             <p style={{ fontSize: 16, fontWeight: 900, color: item.type === 'expense' ? '#0f172a' : '#16a34a', margin: 0 }}>{sym}{item.amount.toFixed(0)}</p>
                             <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>
-                              {new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              {new Date(item.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                             </p>
                           </div>
                         </div>
@@ -1219,12 +1212,12 @@ export default function GroupDetail() {
           {!showActivity && group.expenses.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
               <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
-                <Receipt size={32} color="#7C3AED" />
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#7C3AED' }}>receipt</span>
               </div>
               <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: "0 0 8px" }}>No expenses yet</h3>
               <p style={{ fontSize: 14, color: "#64748b", margin: "0 0 22px", lineHeight: 1.6 }}>Add your first expense to start tracking</p>
               <Link href={`/groups/${groupId}/expenses/new`} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 26px", background: `linear-gradient(135deg, #7C3AED, #6D28D9)`, color: "white", borderRadius: 14, fontSize: 14, fontWeight: 700, textDecoration: "none", boxShadow: "0 4px 14px rgba(124,58,237,0.3)" }}>
-                <Plus size={16} /> Add Expense
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span> Add Expense
               </Link>
             </div>
           ) : !showActivity ? (
@@ -1301,7 +1294,7 @@ export default function GroupDetail() {
                         </div>
                         <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
                           {expense.createdAt
-                            ? new Date(expense.createdAt).toLocaleDateString('en-IN', {
+                            ? new Date(expense.createdAt).toLocaleDateString('en-US', {
                                 day: 'numeric', month: 'short'
                               })
                             : ''}
@@ -1317,14 +1310,14 @@ export default function GroupDetail() {
                         title="Duplicate"
                         disabled={duplicatingExpenseId === expense.id}
                       >
-                        <Copy style={{ width: 15, height: 15 }} />
+                        <span className="material-symbols-outlined" style={{ fontSize: 15 }}>content_copy</span>
                       </button>
                       <Link
                         href={`/groups/${groupId}/expenses/${expense.id}/edit`}
                         style={{ padding: 8, borderRadius: 8, color: '#94a3b8', display: 'flex', alignItems: 'center' }}
                         title="Edit"
                       >
-                        <Edit style={{ width: 16, height: 16 }} />
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
                       </Link>
                       <button
                         onClick={() => setDeleteConfirmExpenseId(expense.id)}
@@ -1332,7 +1325,7 @@ export default function GroupDetail() {
                         title="Delete"
                         disabled={deletingExpenseId === expense.id}
                       >
-                        <Trash2 style={{ width: 16, height: 16 }} />
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                       </button>
                     </div>
                   </div>
@@ -1356,7 +1349,7 @@ export default function GroupDetail() {
                   onClick={() => setShowSettleModal(false)}
                   style={{ padding: 8, borderRadius: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex' }}
                 >
-                  <X style={{ width: 20, height: 20 }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
                 </button>
               </div>
 
@@ -1371,7 +1364,7 @@ export default function GroupDetail() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 16px' }}>
                     <p style={{ fontSize: 24, fontWeight: 900, color: '#7C3AED', margin: 0 }}>{sym}{settleTransaction.amount.toFixed(0)}</p>
-                    <ArrowRight style={{ width: 20, height: 20, color: '#818cf8', marginTop: 4 }} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#818cf8', marginTop: 4 }}>arrow_forward</span>
                   </div>
                   <div style={{ textAlign: 'center', flex: 1 }}>
                     <div style={{ width: 40, height: 40, background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#065f46', fontWeight: 700, margin: '0 auto 4px' }}>
@@ -1446,7 +1439,7 @@ export default function GroupDetail() {
                     </>
                   ) : (
                     <>
-                      <Check style={{ width: 16, height: 16 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                       Confirm
                     </>
                   )}
@@ -1462,7 +1455,7 @@ export default function GroupDetail() {
             <div style={{ background: 'white', borderRadius: 24, padding: 24, maxWidth: 400, width: '100%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Trash2 style={{ width: 20, height: 20, color: '#e11d48' }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e11d48' }}>delete</span>
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', margin: 0 }}>Delete Expense?</h3>
               </div>
@@ -1491,13 +1484,13 @@ export default function GroupDetail() {
             <div style={{ background: 'white', borderRadius: 24, padding: 24, maxWidth: 400, width: '100%', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
               {removeError && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-                  <AlertCircle style={{ width: 20, height: 20 }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>error</span>
                   {removeError}
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <UserMinus style={{ width: 20, height: 20, color: '#e11d48' }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#e11d48' }}>person_remove</span>
                 </div>
                 <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', margin: 0 }}>Remove Member?</h3>
               </div>

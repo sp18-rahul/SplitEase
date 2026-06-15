@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { UserPlus, Users, Loader2, Check, AlertCircle, ArrowLeft, Bell, Settings } from "lucide-react";
 import { AppShell } from "@/app/components/AppSidebar";
 
 const PURPLE     = "#7C3AED";
 const PURPLE_MID = "#6D28D9";
-const PAGE_BG    = "#F0EEFF";
+const PAGE_BG    = "#F8F5FF";
 
 interface User {
   id: number;
@@ -35,6 +34,7 @@ export default function NewGroup() {
   const [addingUser, setAddingUser] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -113,18 +113,21 @@ export default function NewGroup() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "11px 14px",
-    borderRadius: 12,
-    border: "1.5px solid #E2E8F0",
-    fontSize: 15,
-    color: "#0f172a",
-    background: "white",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border-color 0.15s",
-  };
+  const filteredUsers = allUsers.filter(u =>
+    u.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(memberSearch.toLowerCase())
+  );
+
+  const EMOJIS = ["💰","🏠","✈️","🍕","🚗","🎉","🛒","🏖️","💼","🎮","🏋️","🎓","🎵","🎬","🍺","🏕️","🎁","🐶","💊","⚽"];
+
+  const CURRENCIES = [
+    { code: "INR", symbol: "₹", label: "Indian Rupee" },
+    { code: "USD", symbol: "$", label: "US Dollar" },
+    { code: "EUR", symbol: "€", label: "Euro" },
+    { code: "GBP", symbol: "£", label: "British Pound" },
+    { code: "JPY", symbol: "¥", label: "Japanese Yen" },
+    { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
+  ];
 
   return (
     <AppShell activeTab="groups">
@@ -132,34 +135,34 @@ export default function NewGroup() {
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
           @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-          .se-gnew-deskhead { display: none; }
-          .se-gnew-mobhead  { display: flex; }
-          .se-gnew-content  { padding: 0 16px 100px; }
-          @media (min-width: 1024px) {
-            .se-gnew-deskhead { display: flex !important; }
-            .se-gnew-mobhead  { display: none !important; }
-            .se-gnew-content  { padding: 24px 32px 60px !important; max-width: 680px; }
-          }
           .se-gnew-input:focus { border-color: ${PURPLE} !important; }
         `}</style>
 
-        {/* ── DESKTOP HEADER ── */}
-        <div className="se-gnew-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
-              <ArrowLeft size={16} color={PURPLE} />
-            </Link>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Create New Group</h1>
-              <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>Add members and start splitting</p>
-            </div>
+        {/* ── HEADER — se-header handles responsive offset ── */}
+        <div
+          className="se-header"
+          style={{
+            height: 72, background: "white", borderBottom: "1px solid #F0EEFF",
+            display: "flex", alignItems: "center", padding: "0 28px", gap: 16,
+          }}
+        >
+          <div style={{ flex: 1, position: "relative" }}>
+            <span className="material-symbols-outlined" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: "#9CA3AF" }}>search</span>
+            <input
+              placeholder="Search expenses..."
+              style={{
+                width: "100%", background: "#F5F0FF", border: "1px solid #EDE9FE",
+                borderRadius: 999, padding: "9px 16px 9px 42px",
+                fontSize: 14, color: "#1D1A24", outline: "none", boxSizing: "border-box",
+              }}
+            />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={17} color="#64748b" />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#7B7487" }}>notifications</span>
             </button>
-            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Settings size={17} color="#64748b" />
+            <button style={{ width: 36, height: 36, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#7B7487" }}>settings</span>
             </button>
             <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: `linear-gradient(135deg, ${PURPLE}, #5B21B6)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>
               {initial}
@@ -167,229 +170,183 @@ export default function NewGroup() {
           </div>
         </div>
 
-        {/* ── MOBILE HEADER ── */}
-        <div className="se-gnew-mobhead" style={{ alignItems: "center", gap: 12, padding: "20px 18px 14px" }}>
-          <Link href="/groups" style={{ width: 36, height: 36, borderRadius: "50%", background: "white", border: "1px solid #EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
-            <ArrowLeft size={16} color={PURPLE} />
-          </Link>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0f172a", margin: 0 }}>New Group</h1>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "2px 0 0" }}>Add members and split expenses</p>
-          </div>
-        </div>
-
         {/* ── CONTENT ── */}
-        <div className="se-gnew-content" style={{ animation: "fadeIn 0.3s ease" }}>
+        <div style={{ padding: "88px 24px 60px", maxWidth: 720, margin: "0 auto", animation: "fadeIn 0.3s ease" }}>
 
-          {/* Hero banner */}
-          <div style={{ borderRadius: 20, background: `linear-gradient(135deg, ${PURPLE} 0%, #4F46E5 60%, #6366F1 100%)`, boxShadow: `0 10px 36px ${PURPLE}44`, padding: "22px 22px 24px", marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ padding: 14, background: "rgba(255,255,255,0.2)", borderRadius: 18, border: "1px solid rgba(255,255,255,0.3)", backdropFilter: "blur(8px)", flexShrink: 0 }}>
-              <Users size={32} color="white" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: 22, fontWeight: 900, color: "white", margin: "0 0 4px" }}>Create New Group</h2>
-              <p style={{ fontSize: 14, color: "rgba(255,255,255,0.8)", margin: 0 }}>Add friends and start splitting expenses together.</p>
-            </div>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 900, color: "#1D1A24", margin: "0 0 6px" }}>Create Group</h2>
+            <p style={{ fontSize: 14, color: "#7B7487", margin: 0 }}>Set up a new group to start splitting expenses with friends.</p>
           </div>
 
           {/* Alerts */}
           {error && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-              <AlertCircle size={18} />
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>error</span>
               {error}
             </div>
           )}
           {success && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 14, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#16A34A", fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-              <Check size={18} />
+              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
               {success}
             </div>
           )}
 
-          {/* Form card */}
-          <div style={{ background: "white", borderRadius: 20, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "clamp(16px, 4vw, 28px)", marginBottom: 12 }}>
+          {/* Top card: emoji + name + currency */}
+          <div style={{ background: "white", borderRadius: 16, border: "1px solid #F0EEFF", padding: 24, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+              {/* Emoji picker */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => {/* emoji picker toggle */}}
+                  style={{ width: 96, height: 96, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, border: "none", cursor: "pointer" }}
+                >
+                  {emoji}
+                </button>
+                <div style={{ position: "absolute", bottom: 2, right: 2, width: 24, height: 24, borderRadius: "50%", background: "white", border: `2px solid ${PURPLE}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14, color: PURPLE }}>edit</span>
+                </div>
+              </div>
 
-            {/* Group Name */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-                Group Name
-              </label>
-              <input
-                type="text"
-                value={groupName}
-                onChange={e => setGroupName(e.target.value)}
-                className="se-gnew-input"
-                style={{ ...inputStyle, fontSize: 18, padding: "12px 16px" }}
-                placeholder="e.g., Vegas Trip 🎰, Roommate Bills 🏠"
-              />
+              {/* Name + Currency */}
+              <div style={{ flex: 1 }}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                    Group Name
+                  </label>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    className="se-gnew-input"
+                    placeholder="e.g., Vegas Trip, Roommate Bills"
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 15, color: "#1D1A24", background: "white", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                    Currency
+                  </label>
+                  <select
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 14, color: "#1D1A24", background: "white", outline: "none", cursor: "pointer" }}
+                  >
+                    {CURRENCIES.map(c => (
+                      <option key={c.code} value={c.code}>{c.symbol} {c.code} — {c.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Group Icon */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-                Group Icon
+            {/* Emoji grid */}
+            <div style={{ marginTop: 20 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                Pick an Emoji
               </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-                <div style={{ width: 56, height: 56, borderRadius: 18, background: `linear-gradient(135deg, #EDE9FE, #F5F3FF)`, border: `2px solid #C4B5FD`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>
-                  {emoji}
-                </div>
-                <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Pick an emoji that represents your group</p>
-              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {["💰","🏠","✈️","🍕","🚗","🎉","🛒","🏖️","💼","🎮","🏋️","🎓","🎵","🎬","🍺","🏕️","🎁","🐶","💊","⚽"].map(e => (
+                {EMOJIS.map(e => (
                   <button
                     key={e}
                     type="button"
                     onClick={() => setEmoji(e)}
-                    style={{ width: 40, height: 40, borderRadius: 10, border: `2px solid ${emoji === e ? PURPLE : "#E2E8F0"}`, background: emoji === e ? "#EDE9FE" : "#F8FAFC", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s", transform: emoji === e ? "scale(1.15)" : "scale(1)" }}
+                    style={{ width: 40, height: 40, borderRadius: 10, border: `2px solid ${emoji === e ? PURPLE : "#E4D9F7"}`, background: emoji === e ? "#EDE9FE" : "#F8FAFC", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s", transform: emoji === e ? "scale(1.15)" : "scale(1)" }}
                   >
                     {e}
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Currency */}
-            <div style={{ marginBottom: 28 }}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-                Currency
-              </label>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {[
-                  { code: "INR", symbol: "₹", label: "Indian Rupee" },
-                  { code: "USD", symbol: "$", label: "US Dollar" },
-                  { code: "EUR", symbol: "€", label: "Euro" },
-                  { code: "GBP", symbol: "£", label: "British Pound" },
-                  { code: "JPY", symbol: "¥", label: "Japanese Yen" },
-                  { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
-                ].map(({ code, symbol, label }) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setCurrency(code)}
-                    title={label}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 12,
-                      border: `2px solid ${currency === code ? PURPLE : "#E2E8F0"}`,
-                      background: currency === code ? "#EDE9FE" : "#F8FAFC",
-                      color: currency === code ? PURPLE_MID : "#475569",
-                      fontWeight: 700,
-                      fontSize: 15,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                      boxShadow: currency === code ? `0 2px 8px ${PURPLE}25` : "none",
-                    }}
-                  >
-                    {symbol} {code}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Add New Member card */}
-          <div style={{ background: "white", borderRadius: 20, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "clamp(16px, 4vw, 24px)", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", marginBottom: 18, display: "flex", alignItems: "center", gap: 8, margin: "0 0 18px" }}>
-              <UserPlus size={18} color={PURPLE} />
-              Add New Member
-            </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              <input
-                type="text"
-                value={newUserName}
-                onChange={e => setNewUserName(e.target.value)}
-                placeholder="Full Name"
-                className="se-gnew-input"
-                style={inputStyle}
-              />
-              <input
-                type="email"
-                value={newUserEmail}
-                onChange={e => setNewUserEmail(e.target.value)}
-                placeholder="Email Address"
-                className="se-gnew-input"
-                style={inputStyle}
-              />
+          {/* Add Members Card */}
+          <div style={{ background: "white", borderRadius: 16, border: "1px solid #F0EEFF", padding: 24, marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#1D1A24", margin: 0 }}>Add Members</h3>
+              <span style={{ background: PURPLE, color: "white", borderRadius: 999, padding: "3px 12px", fontSize: 13, fontWeight: 700 }}>
+                {selectedUsers.length + 1} Selected
+              </span>
             </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <input
-                type="password"
-                value={newUserPassword}
-                onChange={e => setNewUserPassword(e.target.value)}
-                placeholder="Password (min 6 characters)"
-                className="se-gnew-input"
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <button
-                onClick={addUser}
-                disabled={addingUser}
-                style={{ display: "flex", alignItems: "center", gap: 7, padding: "11px 18px", borderRadius: 12, background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", border: "none", cursor: addingUser ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 13, opacity: addingUser ? 0.7 : 1, whiteSpace: "nowrap", boxShadow: `0 3px 10px ${PURPLE}44`, flexShrink: 0 }}
-              >
-                {addingUser ? <><Loader2 size={15} style={{ animation: "spin 0.8s linear infinite" }} /> Adding...</> : <><UserPlus size={15} /> Add</>}
-              </button>
-            </div>
-          </div>
 
-          {/* Select Members card */}
-          {allUsers.length > 0 && (
-            <div style={{ background: "white", borderRadius: 20, border: "1px solid #F3F0FF", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: "clamp(16px, 4vw, 24px)", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>Select Members</h3>
-                <span style={{ padding: "4px 12px", borderRadius: 20, background: "#EDE9FE", color: PURPLE, fontSize: 12, fontWeight: 700 }}>
-                  {selectedUsers.length} selected
-                </span>
+            {/* Search / add input */}
+            <div style={{ position: "relative", marginBottom: 16 }}>
+              <span className="material-symbols-outlined" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 20, color: "#7B7487" }}>person_add</span>
+              <input
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+                placeholder="Search or add members..."
+                style={{ width: "100%", background: "#F5F0FF", borderRadius: 999, padding: "12px 16px 12px 48px", border: "none", outline: "none", fontSize: 14, color: "#1D1A24", boxSizing: "border-box" }}
+              />
+            </div>
+
+            {/* Creator row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0EEFF", marginBottom: 8 }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: "white", flexShrink: 0 }}>
+                {initial}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {allUsers.map(user => {
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#1D1A24", margin: "0 0 2px" }}>{session?.user?.name} (You)</p>
+                <p style={{ fontSize: 12, color: "#7B7487", margin: 0 }}>{session?.user?.email}</p>
+              </div>
+              <span style={{ background: "#F0EEFF", color: PURPLE, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>Creator</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#7B7487" }}>lock</span>
+            </div>
+
+            {/* Member list */}
+            {filteredUsers.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {filteredUsers.map(user => {
                   const isSelected = selectedUsers.includes(user.id);
                   return (
-                    <button
+                    <div
                       key={user.id}
                       onClick={() => toggleUser(user.id)}
-                      style={{
-                        borderRadius: 14,
-                        border: `2px solid ${isSelected ? PURPLE : "#E2E8F0"}`,
-                        background: isSelected ? "#EDE9FE" : "white",
-                        padding: "14px 12px",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                        boxShadow: isSelected ? `0 2px 8px ${PURPLE}25` : "none",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, cursor: "pointer", background: isSelected ? "#F5F0FF" : "transparent", border: `1.5px solid ${isSelected ? PURPLE : "transparent"}`, transition: "all 0.15s" }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: "50%", border: `2px solid ${isSelected ? PURPLE : "#D1D5DB"}`, background: isSelected ? PURPLE : "#F9FAFB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          {isSelected && <Check size={14} color="white" />}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ fontWeight: 700, color: isSelected ? PURPLE_MID : "#1e293b", margin: 0, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
-                          <p style={{ fontSize: 11, color: "#64748b", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
-                        </div>
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: isSelected ? PURPLE : "#E4D9F7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: isSelected ? "white" : PURPLE, flexShrink: 0 }}>
+                        {user.name.charAt(0).toUpperCase()}
                       </div>
-                    </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: "#1D1A24", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
+                        <p style={{ fontSize: 12, color: "#7B7487", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                      </div>
+                      {isSelected ? (
+                        <div style={{ width: 24, height: 24, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: "white", fontVariationSettings: "'FILL' 1" }}>check</span>
+                        </div>
+                      ) : (
+                        <button style={{ background: "none", border: "none", cursor: "pointer", color: "#7B7487", display: "flex" }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_circle</span>
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
-            <Link
-              href="/groups"
-              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 20px", borderRadius: 14, background: "white", border: "1.5px solid #E2E8F0", color: "#475569", fontWeight: 700, fontSize: 15, textDecoration: "none" }}
-            >
-              <ArrowLeft size={18} /> Cancel
-            </Link>
-            <button
-              onClick={createGroup}
-              disabled={loading || selectedUsers.length === 0 || !groupName.trim()}
-              style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 20px", borderRadius: 14, background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_MID})`, color: "white", border: "none", cursor: (loading || selectedUsers.length === 0 || !groupName.trim()) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 15, opacity: (selectedUsers.length === 0 || !groupName.trim()) ? 0.6 : 1, boxShadow: `0 4px 14px ${PURPLE}44` }}
-            >
-              {loading ? <><Loader2 size={18} style={{ animation: "spin 0.8s linear infinite" }} /> Creating...</> : <>Create Group</>}
-            </button>
+            )}
           </div>
+
+          {/* Create Group Button */}
+          <button
+            onClick={createGroup}
+            disabled={loading || selectedUsers.length === 0 || !groupName.trim()}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px 24px", borderRadius: 999, background: (loading || selectedUsers.length === 0 || !groupName.trim()) ? "#C4B5FD" : PURPLE, color: "white", border: "none", cursor: (loading || selectedUsers.length === 0 || !groupName.trim()) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 16, marginBottom: 12 }}
+          >
+            {loading ? (
+              <>
+                <div style={{ width: 20, height: 20, border: "3px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                Creating...
+              </>
+            ) : (
+              <><span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>group_add</span> Create Group</>
+            )}
+          </button>
+
+          <p style={{ textAlign: "center", fontSize: 12, color: "#7B7487", margin: 0 }}>
+            By creating a group, you agree to our Terms of Service and Privacy Policy.
+          </p>
         </div>
       </div>
     </AppShell>

@@ -4,10 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Wallet, Plus, User, Receipt, TrendingUp, TrendingDown,
-  ChevronRight, Search, X, SlidersHorizontal, Bell, Settings,
-} from "lucide-react";
 import { AppShell } from "@/app/components/AppSidebar";
 
 const CATEGORY_EMOJIS: Record<string, string> = {
@@ -108,7 +104,7 @@ export default function ExpensesPage() {
 
   // Group by date label
   const grouped = useMemo(() => {
-    const groups: { label: string; items: PersonalExpense[] }[] = [];
+    const grps: { label: string; items: PersonalExpense[] }[] = [];
     let currentLabel = "";
     filtered.forEach((e) => {
       const d = new Date(e.createdAt);
@@ -117,33 +113,30 @@ export default function ExpensesPage() {
       let label: string;
       if (diffDays === 0) label = "Today";
       else if (diffDays === 1) label = "Yesterday";
-      else if (diffDays < 7) label = d.toLocaleDateString("en-IN", { weekday: "long" });
+      else if (diffDays < 7) label = d.toLocaleDateString("en-US", { weekday: "long" });
       else if (d.getFullYear() === now.getFullYear())
-        label = d.toLocaleDateString("en-IN", { month: "long" });
+        label = d.toLocaleDateString("en-US", { month: "long" });
       else
-        label = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+        label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
       if (label !== currentLabel) {
-        groups.push({ label, items: [] });
+        grps.push({ label, items: [] });
         currentLabel = label;
       }
-      groups[groups.length - 1].items.push(e);
+      grps[grps.length - 1].items.push(e);
     });
-    return groups;
+    return grps;
   }, [filtered]);
-
-  const activeFilters =
-    (groupFilter !== null ? 1 : 0) + (categoryFilter !== null ? 1 : 0);
 
   const initial = session?.user?.name?.charAt(0).toUpperCase() || "?";
 
   if (loading) {
     return (
       <AppShell activeTab="expenses">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#F0EEFF" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div className="bg-[#F8F5FF] min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
             <div style={{ width: 48, height: 48, border: "4px solid #EDE9FE", borderTopColor: "#7C3AED", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-            <p style={{ color: "#7C3AED", fontWeight: 600 }}>Loading expenses…</p>
+            <p className="text-[#7C3AED] font-semibold">Loading expenses…</p>
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -151,317 +144,275 @@ export default function ExpensesPage() {
     );
   }
 
+  const s = sym();
+  const netBalance = stats?.netBalance ?? 0;
+
   return (
     <AppShell activeTab="expenses">
-    <div style={{ minHeight: "100vh", background: "#F0EEFF" }}>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .se-exp-deskhead { display: none; }
-        .se-exp-mobhead  { display: flex; }
-        .se-exp-content  { padding: 0 16px 100px; }
-        @media (min-width: 1024px) {
-          .se-exp-deskhead { display: flex !important; }
-          .se-exp-mobhead  { display: none !important; }
-          .se-exp-content  { padding: 20px 32px 60px !important; max-width: 800px; }
-        }
-      `}</style>
+      <div className="bg-[#F8F5FF] min-h-screen">
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* ── DESKTOP HEADER ── */}
-      <div className="se-exp-deskhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 28px", background: "white", borderBottom: "1px solid #F3F0FF", position: "sticky", top: 0, zIndex: 30 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: 0 }}>Expenses</h1>
-          <p style={{ fontSize: 13, color: "#94a3b8", margin: "2px 0 0" }}>All your expenses across every group</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Bell size={17} color="#64748b" /></button>
-          <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#F8F5FF", border: "1px solid #EDE9FE", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Settings size={17} color="#64748b" /></button>
-          <Link href="/profile" style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #7C3AED, #5B21B6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "white", textDecoration: "none" }}>{initial}</Link>
-        </div>
-      </div>
-
-      {/* ── MOBILE HEADER ── */}
-      <div className="se-exp-mobhead" style={{ alignItems: "center", justifyContent: "space-between", padding: "20px 18px 14px" }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0 }}>Expenses</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "3px 0 0" }}>All your expenses</p>
-        </div>
-      </div>
-
-      <div className="se-exp-content">
-
-        {/* ── HERO STAT CARD ── */}
-        <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 20, background: "linear-gradient(130deg, #A78BFA 0%, #7C3AED 30%, #4F46E5 65%, #38BDF8 100%)", boxShadow: "0 8px 32px rgba(124,58,237,0.25)", padding: "20px 22px 24px" }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "1px", margin: "0 0 6px" }}>My Expenses</p>
-          <p style={{ fontSize: 40, fontWeight: 900, color: "#fff", margin: "0 0 4px", letterSpacing: "-1.5px", lineHeight: 1 }}>
-            {sym()}{(stats?.totalMyShare ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-          </p>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "0 0 18px" }}>my total share across all groups</p>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[
-              { label: "I Paid", value: `${sym()}${(stats?.totalPaidByMe ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` },
-              { label: "Net Balance", value: `${(stats?.netBalance ?? 0) >= 0 ? "+" : ""}${sym()}${Math.abs(stats?.netBalance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, color: (stats?.netBalance ?? 0) >= 0 ? "#6EE7B7" : "#FCA5A5" },
-              { label: "Total Bills", value: String(stats?.count ?? 0) },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ flex: 1, background: "rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px" }}>{label}</p>
-                <p style={{ fontSize: 17, fontWeight: 900, color: color || "white", margin: 0 }}>{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Filter bar */}
-        <div style={{ marginBottom: 16 }}>
-          {/* Quick filter chips */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto", paddingBottom: 2 }}>
-            {(["all", "i_paid", "i_owe", "i_am_owed"] as FilterType[]).map((f) => {
-              const labels: Record<FilterType, string> = {
-                all: "All", i_paid: "I Paid", i_owe: "I Owe", i_am_owed: "Owed to Me",
-              };
-              const active = filter === f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    flexShrink: 0, padding: "5px 12px", borderRadius: 20,
-                    border: `1.5px solid ${active ? "#7C3AED" : "#e2e8f0"}`,
-                    background: active ? "#7C3AED" : "white",
-                    color: active ? "white" : "#64748b",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
-                  }}
-                >
-                  {labels[f]}
-                </button>
-              );
-            })}
-
-            {/* More filters toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              style={{
-                flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
-                padding: "5px 12px", borderRadius: 20,
-                border: `1.5px solid ${activeFilters > 0 ? "#7C3AED" : "#e2e8f0"}`,
-                background: activeFilters > 0 ? "#EDE9FE" : "white",
-                color: activeFilters > 0 ? "#7C3AED" : "#64748b",
-                fontSize: 12, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              <SlidersHorizontal style={{ width: 12, height: 12 }} />
-              Filters{activeFilters > 0 ? ` (${activeFilters})` : ""}
-            </button>
-          </div>
-
-          {/* Expandable filter panel */}
-          {showFilters && (
-            <div style={{ background: "white", borderRadius: 16, border: "1px solid #EDE9FE", padding: 16, marginBottom: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Group filter */}
-              {groups.length > 1 && (
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Group</p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    <button
-                      onClick={() => setGroupFilter(null)}
-                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === null ? "#7C3AED" : "#e2e8f0"}`, background: groupFilter === null ? "#EDE9FE" : "white", color: groupFilter === null ? "#6D28D9" : "#64748b" }}
-                    >All</button>
-                    {groups.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => setGroupFilter(groupFilter === g.id ? null : g.id)}
-                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${groupFilter === g.id ? "#7C3AED" : "#e2e8f0"}`, background: groupFilter === g.id ? "#EDE9FE" : "white", color: groupFilter === g.id ? "#6D28D9" : "#64748b" }}
-                      >
-                        {g.emoji} {g.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Category filter */}
-              {categories.length > 1 && (
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Category</p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    <button
-                      onClick={() => setCategoryFilter(null)}
-                      style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === null ? "#7C3AED" : "#e2e8f0"}`, background: categoryFilter === null ? "#EDE9FE" : "white", color: categoryFilter === null ? "#6D28D9" : "#64748b" }}
-                    >All</button>
-                    {categories.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
-                        style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${categoryFilter === cat ? "#7C3AED" : "#e2e8f0"}`, background: categoryFilter === cat ? "#EDE9FE" : "white", color: categoryFilter === cat ? "#6D28D9" : "#64748b" }}
-                      >
-                        {CATEGORY_EMOJIS[cat] || "💡"} {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(groupFilter !== null || categoryFilter !== null) && (
-                <button
-                  onClick={() => { setGroupFilter(null); setCategoryFilter(null); }}
-                  style={{ alignSelf: "flex-start", fontSize: 12, fontWeight: 600, color: "#e11d48", background: "#fff1f2", border: "none", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Search bar */}
-          <div style={{ position: "relative" }}>
-            <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 15, height: 15, color: "#94a3b8", pointerEvents: "none" }} />
+        {/* ── HEADER ── */}
+        <header className="se-header" style={{ background: "white", borderBottom: "1px solid #F0EEFF", height: 72, display: "flex", alignItems: "center", padding: "0 20px", gap: 12 }}>
+          <div style={{ flex: 1, position: "relative" }}>
+            <span className="material-symbols-outlined" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: "#9CA3AF" }}>search</span>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search expenses, groups…"
-              style={{ width: "100%", boxSizing: "border-box", paddingLeft: 36, paddingRight: search ? 36 : 14, paddingTop: 10, paddingBottom: 10, borderRadius: 12, border: "1.5px solid #e2e8f0", fontSize: 14, outline: "none", background: "white", color: "#1e293b" }}
+              placeholder="Search expenses, groups..."
+              style={{ width: "100%", background: "#F5F0FF", border: "1px solid #EDE9FE", borderRadius: 999, padding: "9px 16px 9px 42px", fontSize: 14, color: "#1D1A24", outline: "none", boxSizing: "border-box" }}
             />
-            {search && (
-              <button onClick={() => setSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2 }}>
-                <X style={{ width: 14, height: 14 }} />
-              </button>
-            )}
           </div>
-        </div>
+          <button style={{ width: 36, height: 36, borderRadius: "50%", background: "#F5F0FF", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#7B7487" }}>notifications</span>
+          </button>
+          <button style={{ width: 36, height: 36, borderRadius: "50%", background: "#F5F0FF", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#7B7487" }}>settings</span>
+          </button>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #7C3AED, #5B21B6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: "white", flexShrink: 0 }}>
+            {initial}
+          </div>
+        </header>
 
-        {/* Expense list grouped by date */}
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 24px", background: "white", borderRadius: 20, border: "1px solid #EDE9FE" }}>
-            <span style={{ fontSize: 40, display: "block", marginBottom: 12 }}>🔍</span>
-            <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
-              {expenses.length === 0 ? "No expenses yet" : "No matching expenses"}
-            </p>
-            <p style={{ fontSize: 14, color: "#64748b" }}>
-              {expenses.length === 0
-                ? "Add an expense inside any group to see it here."
-                : "Try changing your search or filters."}
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {grouped.map(({ label, items }) => (
-              <div key={label}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, paddingLeft: 4 }}>
-                  {label}
+        {/* ── MAIN CONTENT ── */}
+        <main>
+          <div className="max-w-6xl mx-auto px-6" style={{ paddingTop: 96, paddingBottom: 60 }}>
+
+            {/* Page title row */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-black text-[#1D1A24]">Activity Feed</h1>
+                <p className="text-sm text-[#7B7487] mt-1">Keep track of all your shared expenses across all groups.</p>
+              </div>
+              {/* Avatar group */}
+              <div className="flex items-center -space-x-2 flex-shrink-0">
+                {groups.slice(0, 2).map((g, i) => (
+                  <div
+                    key={g.id}
+                    className="w-9 h-9 rounded-full border-2 border-[#F8F5FF] flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: i === 0 ? "linear-gradient(135deg, #7C3AED, #5B21B6)" : "linear-gradient(135deg, #F59E0B, #D97706)", zIndex: 2 - i }}
+                  >
+                    {g.name.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+                {groups.length > 2 && (
+                  <div
+                    className="w-9 h-9 rounded-full border-2 border-[#F8F5FF] flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: "#7C3AED", zIndex: 0 }}
+                  >
+                    +{groups.length - 2}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+              {/* Total Share */}
+              <div className="bg-white rounded-2xl border border-[#F0EEFF] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-[#7B7487] font-medium">Total Share</p>
+                  <span className="material-symbols-outlined text-[#7C3AED]" style={{ fontSize: 22 }}>donut_large</span>
+                </div>
+                <p className="text-2xl font-black text-[#1D1A24] mb-1">
+                  {s}{(stats?.totalMyShare ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {items.map((expense) => {
-                    const currency = expense.group.currency || "INR";
-                    const s = sym(currency);
-                    const isPaid = expense.iPaid;
-                    const net = expense.net;
+                <p className="text-xs text-[#9CA3AF]">Across {groups.length} group{groups.length !== 1 ? "s" : ""}</p>
+              </div>
 
-                    return (
-                      <Link
-                        key={expense.id}
-                        href={`/groups/${expense.group.id}/expenses/${expense.id}/edit`}
-                        style={{ textDecoration: "none" }}
-                      >
-                        <div
-                          style={{
-                            background: "white",
-                            borderRadius: 18,
-                            border: "1px solid #e2e8f0",
-                            padding: "14px 16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 14,
-                            transition: "all 0.15s",
-                            cursor: "pointer",
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLDivElement).style.borderColor = "#C4B5FD";
-                            (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px rgba(79,70,229,0.08)";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLDivElement).style.borderColor = "#e2e8f0";
-                            (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                          }}
+              {/* Amount Paid */}
+              <div className="bg-white rounded-2xl border border-[#F0EEFF] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-[#7B7487] font-medium">Amount Paid</p>
+                  <span className="material-symbols-outlined text-[#C2722B]" style={{ fontSize: 22 }}>payments</span>
+                </div>
+                <p className="text-2xl font-black text-[#1D1A24] mb-1">
+                  {s}{(stats?.totalPaidByMe ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-[#9CA3AF]">
+                  Settled {stats && stats.totalMyShare > 0 ? Math.round((stats.totalPaidByMe / stats.totalMyShare) * 100) : 0}% total
+                </p>
+              </div>
+
+              {/* Net Balance — highlighted purple */}
+              <div className="rounded-2xl p-5 text-white" style={{ background: "#7C3AED" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>Net Balance</p>
+                  <span className="material-symbols-outlined" style={{ fontSize: 22, color: "rgba(255,255,255,0.9)" }}>account_balance</span>
+                </div>
+                <p className="text-2xl font-black text-white mb-1">
+                  {netBalance >= 0 ? "" : "-"}{s}{Math.abs(netBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
+                  {netBalance > 0 ? `Owed to you` : netBalance < 0 ? `Owed to friends` : "All settled up"}
+                </p>
+              </div>
+
+              {/* Bill Count */}
+              <div className="bg-white rounded-2xl border border-[#F0EEFF] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-[#7B7487] font-medium">Bill Count</p>
+                  <span className="material-symbols-outlined text-[#7C3AED]" style={{ fontSize: 22 }}>receipt_long</span>
+                </div>
+                <p className="text-2xl font-black text-[#1D1A24] mb-1">{stats?.count ?? 0}</p>
+                <p className="text-xs text-[#9CA3AF]">Last 30 days</p>
+              </div>
+            </div>
+
+            {/* Filter section */}
+            <div className="bg-white rounded-2xl border border-[#F0EEFF] p-4 mb-5 flex flex-wrap items-center gap-3">
+              {/* Filter chips pill */}
+              <div className="bg-[#F5F0FF] rounded-full p-1 flex gap-1">
+                {(["all", "i_paid", "i_owe", "i_am_owed"] as FilterType[]).map((f) => {
+                  const labels: Record<FilterType, string> = {
+                    all: "All", i_paid: "I Paid", i_owe: "I Owe", i_am_owed: "Owed to Me",
+                  };
+                  const active = filter === f;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
+                        active
+                          ? "bg-[#7C3AED] text-white font-bold"
+                          : "text-[#4A4455] font-semibold hover:bg-white"
+                      }`}
+                    >
+                      {labels[f]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Group dropdown */}
+              <select
+                value={groupFilter ?? ""}
+                onChange={(e) => setGroupFilter(e.target.value ? Number(e.target.value) : null)}
+                className="border border-[#E4D9F7] rounded-full py-2 px-4 text-sm bg-white text-[#4A4455] outline-none cursor-pointer appearance-none pr-8"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
+              >
+                <option value="">All Groups</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.emoji} {g.name}</option>
+                ))}
+              </select>
+
+              {/* Category dropdown */}
+              <select
+                value={categoryFilter ?? ""}
+                onChange={(e) => setCategoryFilter(e.target.value || null)}
+                className="border border-[#E4D9F7] rounded-full py-2 px-4 text-sm bg-white text-[#4A4455] outline-none cursor-pointer appearance-none pr-8"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {CATEGORY_EMOJIS[cat] || "💡"} {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Expense list grouped by date */}
+            {filtered.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#F0EEFF] p-12 text-center">
+                <span className="text-4xl block mb-3">🔍</span>
+                <p className="text-base font-bold text-[#1D1A24] mb-2">
+                  {expenses.length === 0 ? "No expenses yet" : "No matching expenses"}
+                </p>
+                <p className="text-sm text-[#7B7487]">
+                  {expenses.length === 0
+                    ? "Add an expense inside any group to see it here."
+                    : "Try changing your search or filters."}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {grouped.map(({ label, items }) => (
+                  <div key={label}>
+                    <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest mb-3 mt-5 ml-2">
+                      {label}
+                    </p>
+                    {items.map((expense) => {
+                      const currency = expense.group.currency || "INR";
+                      const cs = sym(currency);
+                      const isPaid = expense.iPaid;
+                      const net = expense.net;
+
+                      let statusText = "";
+                      let statusColor = "";
+                      const paidByName = expense.paidBy?.name || "Someone";
+                      const isMe = expense.iPaid;
+                      if (isMe && net > 0) {
+                        statusText = `You paid, you are owed ${cs}${net.toFixed(2)}`;
+                        statusColor = "#7C3AED";
+                      } else if (isMe && net === 0) {
+                        statusText = `You paid, you owe ${cs}0.00`;
+                        statusColor = "#7C3AED";
+                      } else if (net < 0) {
+                        statusText = `${isMe ? "You" : paidByName} paid, you owe ${cs}${Math.abs(net).toFixed(2)}`;
+                        statusColor = "#E11D48";
+                      } else if (net > 0) {
+                        statusText = `You paid, you are owed ${cs}${net.toFixed(2)}`;
+                        statusColor = "#7C3AED";
+                      } else {
+                        statusText = "Settled up";
+                        statusColor = "#9CA3AF";
+                      }
+
+                      return (
+                        <Link
+                          key={expense.id}
+                          href={`/groups/${expense.group.id}/expenses/${expense.id}/edit`}
+                          className="block no-underline"
                         >
-                          {/* Category icon */}
-                          {expense.receiptUrl ? (
-                            <div style={{ width: 46, height: 46, borderRadius: 14, overflow: "hidden", flexShrink: 0, border: "2px solid #e2e8f0" }}>
-                              <img src={expense.receiptUrl} alt="Receipt" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <div className="bg-white rounded-2xl border border-[#F0EEFF] p-4 mb-2 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer">
+                            {/* Emoji icon */}
+                            <div className="w-12 h-12 rounded-2xl bg-[#F5F0FF] flex items-center justify-center text-2xl flex-shrink-0">
+                              {expense.receiptUrl
+                                ? <img src={expense.receiptUrl} alt="" className="w-full h-full object-cover rounded-2xl" />
+                                : (CATEGORY_EMOJIS[expense.category || "other"] || "💡")}
                             </div>
-                          ) : (
-                            <div style={{ width: 46, height: 46, borderRadius: 14, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>
-                              {CATEGORY_EMOJIS[expense.category || "other"] || "💡"}
-                            </div>
-                          )}
 
-                          {/* Details */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                              <div style={{ minWidth: 0 }}>
-                                <p style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {expense.description}
-                                </p>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                                  <span style={{ fontSize: 12, color: "#64748b" }}>
-                                    {expense.group.emoji || "💰"} {expense.group.name}
-                                  </span>
-                                  <span style={{ fontSize: 10, color: "#cbd5e1" }}>·</span>
-                                  <span style={{ fontSize: 12, color: "#94a3b8" }}>
-                                    {isPaid ? "You paid" : `${expense.paidBy.name} paid`}
-                                  </span>
-                                </div>
-                              </div>
-                              {/* Right side amounts */}
-                              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <p style={{ fontSize: 15, fontWeight: 900, color: "#0f172a", margin: 0 }}>
-                                  {s}{expense.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                                </p>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    marginTop: 3,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    padding: "2px 8px",
-                                    borderRadius: 20,
-                                    background: net > 0 ? "#dcfce7" : net < 0 ? "#fff1f2" : "#f1f5f9",
-                                    color: net > 0 ? "#166534" : net < 0 ? "#e11d48" : "#64748b",
-                                  }}
-                                >
-                                  {net > 0 ? `+${s}${net.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` :
-                                   net < 0 ? `-${s}${Math.abs(net).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` :
-                                   "settled"}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-[#1D1A24] truncate" style={{ fontSize: 15 }}>{expense.description}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="bg-[#EDE9FE] text-[#7C3AED] rounded-full px-2.5 py-0.5 font-bold uppercase tracking-wide" style={{ fontSize: 10 }}>
+                                  {expense.group.name}
+                                </span>
+                                <span className="text-xs text-[#9CA3AF]">
+                                  {new Date(expense.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
                               </div>
                             </div>
 
-                            {expense.notes && (
-                              <p style={{ fontSize: 11, color: "#94a3b8", margin: "4px 0 0", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {expense.notes}
+                            {/* Amount + status */}
+                            <div className="text-right flex-shrink-0 min-w-[120px]">
+                              <p className="font-black text-[#1D1A24]" style={{ fontSize: 18 }}>
+                                {cs}{expense.amount.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}
                               </p>
-                            )}
+                              <p className="text-xs font-semibold mt-0.5" style={{ color: statusColor }}>
+                                {statusText}
+                              </p>
+                            </div>
                           </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
 
-                          <ChevronRight style={{ width: 16, height: 16, color: "#cbd5e1", flexShrink: 0 }} />
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                <p className="text-center text-xs text-[#9CA3AF] py-4">
+                  Showing {filtered.length} of {expenses.length} expenses
+                </p>
               </div>
-            ))}
+            )}
 
-            {/* Footer count */}
-            <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", paddingBottom: 8 }}>
-              Showing {filtered.length} of {expenses.length} expenses
-            </p>
           </div>
-        )}
-
+        </main>
       </div>
-
-    </div>
     </AppShell>
   );
 }

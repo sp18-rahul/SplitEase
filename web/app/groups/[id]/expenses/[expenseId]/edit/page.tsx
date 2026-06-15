@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Trash2, AlertCircle, CheckCircle2, Loader2, Camera, X } from "lucide-react";
+
 
 interface Member {
   id: number;
@@ -222,7 +222,7 @@ export default function EditExpense() {
             className="btn-ghost inline-flex items-center gap-2"
             style={{ color: '#475569' }}
           >
-            <ArrowLeft style={{ width: 16, height: 16 }} />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_back</span>
             <span style={{ fontSize: 14, fontWeight: 500 }}>Back to group</span>
           </Link>
         </div>
@@ -232,7 +232,7 @@ export default function EditExpense() {
           <div className="summary-card" style={{ borderRadius: '1.5rem 1.5rem 0 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ padding: 12, background: 'rgba(255,255,255,0.2)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.3)' }}>
-                <Save style={{ width: 32, height: 32, color: 'white' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'white' }}>save</span>
               </div>
               <div>
                 <h1 style={{ fontSize: 24, fontWeight: 900, color: 'white', marginBottom: 4 }}>Edit Expense</h1>
@@ -245,7 +245,7 @@ export default function EditExpense() {
             {/* Error */}
             {error && (
               <div className="alert-error" role="alert" style={{ marginBottom: 20 }}>
-                <AlertCircle style={{ width: 18, height: 18, flexShrink: 0 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 18, flexShrink: 0, fontVariationSettings: "'FILL' 1" }}>error</span>
                 <span>{error}</span>
               </div>
             )}
@@ -360,7 +360,7 @@ export default function EditExpense() {
                   />
                   {uploadingReceipt && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Loader2 style={{ width: 24, height: 24, color: '#4f46e5' }} className="animate-spin" />
+                      <div style={{ width: 24, height: 24, border: "3px solid #EDE9FE", borderTopColor: "#4f46e5", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     </div>
                   )}
                   {!uploadingReceipt && (
@@ -369,13 +369,13 @@ export default function EditExpense() {
                       onClick={() => { setReceiptUrl(null); setReceiptPreview(null); }}
                       style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <X style={{ width: 14, height: 14 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
                     </button>
                   )}
                 </div>
               ) : (
                 <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '20px 16px', borderRadius: 12, border: '2px dashed #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}>
-                  <Camera style={{ width: 24, height: 24, color: '#94a3b8' }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#94a3b8' }}>photo_camera</span>
                   <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Tap to upload receipt</span>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>JPG, PNG, WebP · Max 5MB</span>
                   <input
@@ -488,7 +488,7 @@ export default function EditExpense() {
                   <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Target: ₹{numAmount.toFixed(2)}</div>
                   {splitMatch ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#16a34a', fontSize: 13, fontWeight: 600 }}>
-                      <CheckCircle2 style={{ width: 16, height: 16 }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                       Perfect split!
                     </div>
                   ) : (
@@ -510,12 +510,12 @@ export default function EditExpense() {
               >
                 {saving ? (
                   <>
-                    <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />
+                    <div style={{ width: 18, height: 18, border: "3px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Save style={{ width: 18, height: 18 }} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>save</span>
                     Save Changes
                   </>
                 )}
@@ -525,7 +525,7 @@ export default function EditExpense() {
                 className="btn-danger"
                 style={{ flex: 1, justifyContent: 'center', fontSize: 16, padding: '12px 24px' }}
               >
-                <Trash2 style={{ width: 18, height: 18 }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
                 Delete
               </button>
             </div>
@@ -546,7 +546,7 @@ export default function EditExpense() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <AlertCircle style={{ width: 24, height: 24, color: '#e11d48' }} />
+                <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#e11d48', fontVariationSettings: "'FILL' 1" }}>error</span>
               </div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>Delete Expense?</h3>
             </div>
@@ -569,7 +569,7 @@ export default function EditExpense() {
               >
                 {deleting ? (
                   <>
-                    <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
+                    <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                     Deleting...
                   </>
                 ) : (
