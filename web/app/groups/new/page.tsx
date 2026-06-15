@@ -29,7 +29,6 @@ export default function NewGroup() {
   const [emoji, setEmoji] = useState("💰");
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserPassword, setNewUserPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
   const [error, setError] = useState("");
@@ -50,35 +49,63 @@ export default function NewGroup() {
     fetchUsers();
   }, []);
 
+  const generateTempPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let pwd = "";
+    for (let i = 0; i < 8; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pwd;
+  };
+
   const addUser = async () => {
     setError("");
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) {
-      setError("All fields are required");
-      return;
-    }
-    if (newUserPassword.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (!newUserName.trim() || !newUserEmail.trim()) {
+      setError("Name and email are required");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUserEmail)) {
       setError("Invalid email format");
       return;
     }
+
+    // Check if email already exists
+    const emailExists = allUsers.some(u => u.email.toLowerCase() === newUserEmail.toLowerCase());
+    if (emailExists) {
+      setError("This email is already registered. Search for the user above instead.");
+      return;
+    }
+
     setAddingUser(true);
     try {
+      const tempPassword = generateTempPassword();
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newUserName, email: newUserEmail, password: newUserPassword }),
+        body: JSON.stringify({ name: newUserName, email: newUserEmail, password: tempPassword }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to create user"); return; }
+
+      // Send welcome email with temporary password
+      await fetch("/api/email/send-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: newUserEmail,
+          name: newUserName,
+          password: tempPassword,
+          groupName: groupName,
+          inviterName: session?.user?.name || "A friend",
+        }),
+      });
+
       const newUser = { id: parseInt(data.userId), name: newUserName, email: newUserEmail };
       setAllUsers([...allUsers, newUser]);
       setSelectedUsers([...selectedUsers, newUser.id]);
-      setNewUserName(""); setNewUserEmail(""); setNewUserPassword("");
-      setSuccess(`${newUserName} added successfully!`);
-      setTimeout(() => setSuccess(""), 3000);
+      setNewUserName(""); setNewUserEmail("");
+      setSuccess(`${newUserName} invited! Check their email for login credentials.`);
+      setTimeout(() => setSuccess(""), 4000);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -294,9 +321,9 @@ export default function NewGroup() {
               <span className="material-symbols-outlined" style={{ fontSize: 18, color: "#7B7487" }}>lock</span>
             </div>
 
-            {/* Member list */}
-            {filteredUsers.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {/* Member list - only show when user types in search */}
+            {memberSearch && filteredUsers.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: "300px", overflowY: "auto" }}>
                 {filteredUsers.map(user => {
                   const isSelected = selectedUsers.includes(user.id);
                   return (
@@ -325,9 +352,31 @@ export default function NewGroup() {
                   );
                 })}
               </div>
-            ) : memberSearch ? (
+            ) : memberSearch && filteredUsers.length === 0 ? (
               <div style={{ textAlign: "center", padding: "20px 12px", color: "#7B7487" }}>
                 <p style={{ fontSize: 14, margin: 0 }}>No users found. <strong>Invite a new user below.</strong></p>
+              </div>
+            ) : selectedUsers.length > 0 ? (
+              // Show selected members when search is empty
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: "300px", overflowY: "auto" }}>
+                {allUsers.filter(u => selectedUsers.includes(u.id)).map(user => (
+                  <div
+                    key={user.id}
+                    onClick={() => toggleUser(user.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, cursor: "pointer", background: "#F5F0FF", border: `1.5px solid ${PURPLE}`, transition: "all 0.15s" }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: "white", flexShrink: 0 }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#1D1A24", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
+                      <p style={{ fontSize: 12, color: "#7B7487", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                    </div>
+                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14, color: "white", fontVariationSettings: "'FILL' 1" }}>check</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div style={{ textAlign: "center", padding: "20px 12px", color: "#7B7487" }}>
@@ -373,31 +422,20 @@ export default function NewGroup() {
                 />
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#7B7487", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Password (min 6 chars)</label>
-                <input
-                  type="password"
-                  value={newUserPassword}
-                  onChange={e => setNewUserPassword(e.target.value)}
-                  placeholder="••••••••"
-                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E4D9F7", fontSize: 14, color: "#1D1A24", background: "white", outline: "none", boxSizing: "border-box" }}
-                />
-              </div>
-
               <button
                 onClick={addUser}
-                disabled={addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 16px", borderRadius: 12, background: (addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) ? "#C4B5FD" : PURPLE, color: "white", border: "none", cursor: (addingUser || !newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14 }}
+                disabled={addingUser || !newUserName.trim() || !newUserEmail.trim()}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 16px", borderRadius: 12, background: (addingUser || !newUserName.trim() || !newUserEmail.trim()) ? "#C4B5FD" : PURPLE, color: "white", border: "none", cursor: (addingUser || !newUserName.trim() || !newUserEmail.trim()) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14 }}
               >
                 {addingUser ? (
                   <>
                     <div style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    Adding...
+                    Sending invite...
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>person_add</span>
-                    Create & Add to Group
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>mail</span>
+                    Send Invite & Add
                   </>
                 )}
               </button>
