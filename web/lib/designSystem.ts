@@ -10,15 +10,18 @@
 
 export const COLORS = {
   // Primary & Brand
-  primary: "#630ed4",           // Main brand purple
-  primaryContainer: "#7c3aed",  // Light purple for buttons
-  secondary: "#712edd",         // Secondary purple
-  secondaryContainer: "#8b4ef7", // Light secondary
+  primary: "#630ed4",              // Main brand purple
+  primaryContainer: "#7c3aed",     // Light purple for buttons
+  onPrimaryContainer: "#ffffff",   // Text on primary container
+  primaryFixed: "#ede9fe",         // Very light purple tint
+  secondary: "#712edd",            // Secondary purple
+  secondaryContainer: "#8b4ef7",   // Light secondary
 
   // Surfaces & Backgrounds
-  background: "#f8f9ff",        // Page background
-  surface: "#ffffff",           // Card background
-  surfaceVariant: "#d5e3fc",    // Subtle surface
+  background: "#f8f9ff",           // Page background
+  surface: "#ffffff",              // Card background
+  surfaceVariant: "#d5e3fc",       // Subtle surface
+  surfaceContainerLow: "#f5f0ff",  // Low emphasis surface
 
   // Text Colors
   onSurface: "#0d1c2e",         // Primary text
