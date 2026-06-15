@@ -23,6 +23,8 @@ model User {
   expenseSplits ExpenseSplit[]
   fromSettlements Settlement[] @relation("from")
   toSettlements   Settlement[] @relation("to")
+  sentFriendRequests FriendRequest[] @relation("sentRequests")
+  receivedFriendRequests FriendRequest[] @relation("receivedRequests")
 }
 
 model Group {
@@ -86,6 +88,20 @@ model Settlement {
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   fromUser User @relation("from", fields: [fromUserId], references: [id])
   toUser   User @relation("to", fields: [toUserId], references: [id])
+}
+
+model FriendRequest {
+  id        Int     @id @default(autoincrement())
+  fromUserId Int
+  toUserId  Int
+  status    String  @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fromUser User @relation("sentRequests", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("receivedRequests", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
 }
 
 model PasswordResetToken {

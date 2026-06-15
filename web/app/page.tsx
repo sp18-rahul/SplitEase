@@ -285,11 +285,16 @@ function QuickSettleCard({ groups, currentUserId }: { groups: Group[]; currentUs
 }
 
 // ── RECENT ACTIVITY PANEL ────────────────────────────────────────────────────
-function RecentActivityPanel({ groups, currentUserId }: { groups: Group[]; currentUserId: number }) {
-  const all = groups
-    .flatMap((g) => (g.expenses || []).map((e) => ({ ...e, groupName: g.name, groupEmoji: g.emoji })))
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-    .slice(0, 5);
+function RecentActivityPanel({
+  activities,
+  currentUserId,
+  onSelectExpense
+}: {
+  activities: any[];
+  currentUserId: number;
+  onSelectExpense: (expenseId: number) => void;
+}) {
+  const all = activities.slice(0, 5);
 
   const CATEGORY_EMOJIS: Record<string, string> = {
     food: "🍔", transport: "🚗", movie: "🎬", hotel: "🏨",
@@ -333,11 +338,16 @@ function RecentActivityPanel({ groups, currentUserId }: { groups: Group[]; curre
             return (
               <div
                 key={exp.id}
+                onClick={() => onSelectExpense(exp.id)}
                 style={{
                   display: "flex", alignItems: "center", gap: 12,
                   padding: "12px 0",
                   borderBottom: idx < all.length - 1 ? "1px solid #F5F0FF" : "none",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s ease",
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(124,58,237,0.05)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 {/* Icon */}
                 <div style={{
@@ -376,6 +386,128 @@ function RecentActivityPanel({ groups, currentUserId }: { groups: Group[]; curre
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── EXPENSE DETAIL MODAL ───────────────────────────────────────────────────────
+function ExpenseDetailModal({
+  expense,
+  onClose,
+}: {
+  expense: any | null;
+  onClose: () => void;
+}) {
+  if (!expense) return null;
+
+  const iPaid = expense.paidById === expense.currentUserId;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        background: "rgba(15,23,42,0.55)",
+        backdropFilter: "blur(6px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: COLORS.surface,
+          borderRadius: "24px 24px 0 0",
+          width: "100%",
+          maxWidth: 540,
+          padding: `${SPACING.xs} 0 ${SPACING.xl}`,
+          boxShadow: SHADOWS.lg,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "center", padding: `${SPACING.md} 0 ${SPACING.xs}` }}>
+          <div style={{ width: 36, height: 4, borderRadius: BORDER_RADIUS.sm, background: COLORS.outline }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${SPACING.xs} ${SPACING.lg} ${SPACING.md}` }}>
+          <div>
+            <h2 style={{ fontSize: TYPOGRAPHY.headline.fontSize, fontWeight: 900, color: COLORS.onSurface, margin: 0 }}>
+              {expense.description}
+            </h2>
+            <p style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.onSurfaceVariant, margin: `${SPACING.xs} 0 0` }}>
+              {expense.groupName}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: COLORS.surfaceContainerLow,
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: COLORS.onSurfaceVariant }}>
+              close
+            </span>
+          </button>
+        </div>
+
+        <div style={{ padding: `0 ${SPACING.lg}`, display: "flex", flexDirection: "column", gap: SPACING.lg }}>
+          {/* Amount */}
+          <div style={{ textAlign: "center", padding: SPACING.lg, background: COLORS.surfaceContainerLow, borderRadius: BORDER_RADIUS.md }}>
+            <p style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, color: COLORS.onSurfaceVariant, margin: 0 }}>Amount</p>
+            <p
+              style={{
+                fontSize: TYPOGRAPHY.headline.fontSize,
+                fontWeight: 900,
+                color: iPaid ? COLORS.success : COLORS.error,
+                margin: `${SPACING.sm} 0 0`,
+              }}
+            >
+              {iPaid ? "+" : "−"}₹{expense.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+
+          {/* Paid By */}
+          <div>
+            <label style={STYLES.label}>Paid By</label>
+            <div style={{ padding: SPACING.md, background: COLORS.surfaceContainerLow, borderRadius: BORDER_RADIUS.md, fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.onSurface }}>
+              {expense.paidBy?.name || "Unknown"}
+            </div>
+          </div>
+
+          {/* Split Details */}
+          <div>
+            <label style={STYLES.label}>Split Between</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: SPACING.sm }}>
+              {expense.splits.map((split: any, idx: number) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: `${SPACING.sm} ${SPACING.md}`, background: COLORS.surfaceContainerLow, borderRadius: BORDER_RADIUS.md }}>
+                  <span style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, color: COLORS.onSurface }}>
+                    Member {idx + 1}
+                  </span>
+                  <span style={{ fontSize: TYPOGRAPHY.bodyMd.fontSize, fontWeight: 600, color: COLORS.onSurface }}>
+                    ₹{split.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Created Date */}
+          {expense.createdAt && (
+            <div style={{ fontSize: TYPOGRAPHY.labelMd.fontSize, color: COLORS.onSurfaceVariant, textAlign: "center", paddingTop: SPACING.md, borderTop: `1px solid ${COLORS.outline}` }}>
+              {new Date(expense.createdAt).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -493,6 +625,8 @@ export default function Home() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
 
   const currentUserId = session?.user?.id ? parseInt(session.user.id as string) : null;
 
@@ -516,6 +650,22 @@ export default function Home() {
     if (status !== "authenticated") return;
     fetchGroups();
   }, [status]);
+
+  // Filter groups and activities based on search query
+  const filteredGroups = groups.filter(g =>
+    g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    g.emoji?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const allActivities = groups
+    .flatMap((g) => (g.expenses || []).map((e) => ({ ...e, groupName: g.name, groupEmoji: g.emoji })))
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+  const filteredActivities = allActivities.filter(e =>
+    e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.groupName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    e.paidBy?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 5);
 
   if (status === "loading" || (status === "authenticated" && loading)) {
     return (
@@ -548,6 +698,8 @@ export default function Home() {
             <input
               type="text"
               placeholder="Search transactions, groups..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: "100%", background: "#F5F0FF", border: "1px solid #EDE9FE",
                 borderRadius: 999, padding: "9px 16px 9px 42px",
@@ -586,17 +738,21 @@ export default function Home() {
                 {/* LEFT col: Hero + Recent Activity */}
                 <div style={{ gridColumn: "span 8", display: "flex", flexDirection: "column", gap: 20 }}>
                   <BalanceHeroCard
-                    groups={groups}
+                    groups={filteredGroups}
                     currentUserId={currentUserId}
                     onSettleNow={() => setShowQuickAdd(true)}
                   />
-                  <RecentActivityPanel groups={groups} currentUserId={currentUserId} />
+                  <RecentActivityPanel
+                    activities={filteredActivities}
+                    currentUserId={currentUserId}
+                    onSelectExpense={setSelectedExpenseId}
+                  />
                 </div>
 
                 {/* RIGHT col: Actions + Quick Settle */}
                 <div style={{ gridColumn: "span 4", display: "flex", flexDirection: "column", gap: 20 }}>
                   <ActionsCard onAddExpense={() => setShowQuickAdd(true)} />
-                  <QuickSettleCard groups={groups} currentUserId={currentUserId} />
+                  <QuickSettleCard groups={filteredGroups} currentUserId={currentUserId} />
                 </div>
               </div>
             </>
@@ -648,6 +804,18 @@ export default function Home() {
         <style>{`
           @media (min-width: 768px) { .md-fab { display: flex !important; } }
         `}</style>
+
+        {/* ── Expense Detail Modal ── */}
+        {selectedExpenseId && currentUserId && (
+          <ExpenseDetailModal
+            expense={
+              allActivities.find((e) => e.id === selectedExpenseId)
+                ? { ...allActivities.find((e) => e.id === selectedExpenseId), currentUserId }
+                : null
+            }
+            onClose={() => setSelectedExpenseId(null)}
+          />
+        )}
 
         {/* ── Quick Add Modal ── */}
         {showQuickAdd && currentUserId && (
