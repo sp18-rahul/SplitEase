@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, RefreshControl, Alert,
@@ -6,20 +6,18 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
-import { useTheme } from "@/context/theme";
 import { groups as groupsApi, activityApi } from "@/api/client";
 
 const PURPLE = "#7C3AED";
 const PURPLE_LIGHT = "#EDE9FE";
 const BG = "#F8F5FF";
 
-const AVATAR_COLORS = [PURPLE, "#A78BFA", "#6D28D9", "#8B5CF6", "#C4B5FD", "#10b981", "#f59e0b", "#e11d48"];
+const AVATAR_COLORS = [PURPLE, "#10B981", "#F59E0B", "#3B82F6", "#EF4444", "#8B5CF6", "#EC4899"];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥", AED: "د.إ",
 };
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+const sym = (code?: string) => CURRENCY_SYMBOLS[code || "INR"] || "₹";
 
 interface ActivityItem {
   id: string;
@@ -29,35 +27,30 @@ interface ActivityItem {
   amount: number;
   actor: { id: number; name: string };
   createdAt: string;
+  groupId: number;
   groupName: string;
   groupCurrency: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+type FilterTab = "all" | "expenses" | "settlements";
 
-function formatTime(dateStr: string): string {
+function timeAgo(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return `Yesterday, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-function formatAmount(amount: number, currency: string): string {
-  const sym = CURRENCY_SYMBOLS[currency] || "$";
-  return `${sym}${Math.abs(amount).toFixed(2)}`;
+function getAvatarColor(id: number): string {
+  return AVATAR_COLORS[id % AVATAR_COLORS.length];
 }
-
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-}
-
-function avatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ActivityScreen() {
   const router = useRouter();
@@ -65,23 +58,21 @@ export default function ActivityScreen() {
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
-  const currentUserId = user.userId;
   const initial = user.name?.charAt(0).toUpperCase() || "?";
-  const { colors, isDark } = useTheme();
 
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterTab>("all");
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign Out", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       { text: "Sign Out", style: "destructive", onPress: logout },
     ]);
   };
 
-  // ── Fetch all groups → fetch activity per group in parallel ──
   const fetchActivity = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
@@ -93,119 +84,59 @@ export default function ActivityScreen() {
           try {
             const res = await activityApi.getByGroup(g.id);
             return (Array.isArray(res.data) ? res.data : []).map((item: any) => ({
-              ...item,
-              groupName: g.name || "Group",
-              groupCurrency: g.currency || "INR",
+              ...item, groupId: g.id, groupName: g.name || "Group", groupCurrency: g.currency || "INR",
             }));
-          } catch {
-            return [];
-          }
+          } catch { return []; }
         })
       );
 
       const merged: ActivityItem[] = (activityResults.flat() as ActivityItem[]).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-
       setItems(merged);
-    } catch {
-      // network error – keep existing data
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    } catch { /* keep existing */ }
+    finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useFocusEffect(useCallback(() => { fetchActivity(); }, [fetchActivity]));
-
   const onRefresh = () => { setRefreshing(true); fetchActivity(true); };
 
-  // ── Filter by search ──
-  const filtered = search.trim()
-    ? items.filter(
-        (i) =>
-          i.title.toLowerCase().includes(search.toLowerCase()) ||
-          i.groupName.toLowerCase().includes(search.toLowerCase()) ||
-          i.actor.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : items;
-
-  // ── Group into TODAY / YESTERDAY / EARLIER ──
-  const now = new Date();
-  const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-
-  const todayItems = filtered.filter((i) => isSameDay(new Date(i.createdAt), now));
-  const yesterdayItems = filtered.filter((i) => isSameDay(new Date(i.createdAt), yesterday));
-  const earlierItems = filtered.filter(
-    (i) => !isSameDay(new Date(i.createdAt), now) && !isSameDay(new Date(i.createdAt), yesterday)
+  const filtered = useMemo(() =>
+    items.filter(item => {
+      if (search && !item.title.toLowerCase().includes(search.toLowerCase()) &&
+          !item.actor.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filter === "expenses" && item.type !== "expense") return false;
+      if (filter === "settlements" && item.type !== "settlement") return false;
+      return true;
+    }),
+    [items, filter, search]
   );
 
-  // ── Settlement label helper ──
-  function settlementSign(item: ActivityItem): { positive: boolean; label: string } {
-    // "Mike paid Sarah" format - check if current user is beneficiary
-    const lowerTitle = item.title.toLowerCase();
-    const myName = user?.name?.toLowerCase() || "";
-    if (lowerTitle.includes(`paid ${myName}`)) return { positive: true, label: "Received" };
-    if (item.actor.id === currentUserId) return { positive: false, label: "You settled" };
-    return { positive: true, label: "Received" };
-  }
-
-  // ── Render a section ──
-  function renderSection(label: string, sectionItems: ActivityItem[]) {
-    if (sectionItems.length === 0) return null;
-    return (
-      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-        <Text style={styles.sectionLabel}>{label}</Text>
-        <View style={styles.timelineCard}>
-          {sectionItems.map((item, idx) => {
-            const isSettlement = item.type === "settlement";
-            const sign = isSettlement ? settlementSign(item) : null;
-            const amountColor = isSettlement
-              ? (sign!.positive ? "#16a34a" : "#e11d48")
-              : "#e11d48";
-            const amountLabel = isSettlement ? sign!.label : "Total";
-            const actorColor = avatarColor(item.actor.name);
-            const actorInitial = item.actor.name.charAt(0).toUpperCase();
-            const displayText = isSettlement
-              ? item.title
-              : `${item.actor.id === currentUserId ? "You" : item.actor.name} added "${item.title}"`;
-
-            return (
-              <View
-                key={item.id}
-                style={[
-                  styles.timelineItem,
-                  idx === sectionItems.length - 1 && { borderBottomWidth: 0 },
-                ]}
-              >
-                <View style={[styles.timelineAvatar, { backgroundColor: actorColor }]}>
-                  <Text style={styles.timelineAvatarText}>{actorInitial}</Text>
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={styles.timelineText} numberOfLines={1}>{displayText}</Text>
-                  <Text style={styles.timelineGroup} numberOfLines={1}>
-                    {item.groupName} · {formatTime(item.createdAt)}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end", flexShrink: 0 }}>
-                  <Text style={[styles.timelineAmount, { color: amountColor }]}>
-                    {isSettlement && sign!.positive ? "+" : "-"}
-                    {formatAmount(item.amount, item.groupCurrency)}
-                  </Text>
-                  <Text style={styles.timelineLabel}>{amountLabel}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-    );
-  }
+  // Date grouping (web-style: TODAY / YESTERDAY / LAST WEEK / month)
+  const grouped = useMemo(() => {
+    const sections: { label: string; items: ActivityItem[] }[] = [];
+    let cur = "";
+    filtered.forEach(item => {
+      const d = new Date(item.createdAt);
+      const now = new Date();
+      const diff = Math.floor((now.getTime() - d.getTime()) / 86400000);
+      const label =
+        diff === 0 ? "TODAY" :
+        diff === 1 ? "YESTERDAY" :
+        diff < 7 ? "LAST WEEK" :
+        d.getFullYear() === now.getFullYear()
+          ? d.toLocaleDateString("en-IN", { month: "long" }).toUpperCase()
+          : d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }).toUpperCase();
+      if (label !== cur) { sections.push({ label, items: [] }); cur = label; }
+      sections[sections.length - 1].items.push(item);
+    });
+    return sections;
+  }, [filtered]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
@@ -223,9 +154,27 @@ export default function ActivityScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PURPLE} />}
       >
-        {/* ── PAGE TITLE ── */}
-        <View style={styles.pageTitleRow}>
-          <Text style={styles.pageTitle}>Activity</Text>
+        {/* ── PAGE HEADER + FILTER TABS ── */}
+        <View style={styles.pageHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pageTitle}>Activity</Text>
+            <Text style={styles.pageSubtitle}>Track your recent shared expenses and settlements</Text>
+          </View>
+          {/* Filter tabs pill (web-style) */}
+          <View style={styles.filterPill}>
+            {(["all", "expenses", "settlements"] as FilterTab[]).map(key => (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setFilter(key)}
+                style={[styles.pillBtn, filter === key && styles.pillBtnActive]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.pillBtnText, filter === key && styles.pillBtnTextActive]}>
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* ── SEARCH ── */}
@@ -233,8 +182,8 @@ export default function ActivityScreen() {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search transactions or groups..."
-            placeholderTextColor="#94a3b8"
+            placeholder="Search activity..."
+            placeholderTextColor="#9CA3AF"
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -243,41 +192,103 @@ export default function ActivityScreen() {
           />
           {!!search && (
             <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 14, color: "#94a3b8" }}>✕</Text>
+              <Text style={{ fontSize: 14, color: "#9CA3AF" }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* ── LOADING ── */}
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color={PURPLE} />
             <Text style={styles.loadingText}>Loading activity...</Text>
           </View>
         ) : filtered.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>🔔</Text>
-            <Text style={styles.emptyTitle}>
-              {search ? "No results found" : "No activity yet"}
-            </Text>
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <Text style={{ fontSize: 26 }}>🕐</Text>
+            </View>
+            <Text style={styles.emptyTitle}>No activity yet</Text>
             <Text style={styles.emptySubtitle}>
-              {search
-                ? "Try a different search term"
-                : "Add expenses to groups and they'll appear here"}
+              {search ? "Try a different search term" : "Activity will appear here when expenses are added."}
             </Text>
           </View>
         ) : (
           <>
-            {renderSection("TODAY", todayItems)}
-            {renderSection("YESTERDAY", yesterdayItems)}
-            {renderSection("EARLIER", earlierItems)}
+            {grouped.map(({ label, items: sectionItems }) => (
+              <View key={label} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+                {/* Date label */}
+                <Text style={styles.sectionLabel}>{label}</Text>
 
-            {/* ── END OF UPDATES ── */}
+                {/* White card with activity items */}
+                <View style={styles.activityCard}>
+                  {sectionItems.map((item, idx) => {
+                    const s = sym(item.groupCurrency);
+                    const isSettlement = item.type === "settlement";
+                    const avatarColor = getAvatarColor(item.actor.id);
+                    const badgeBg = isSettlement ? "#10B981" : PURPLE;
+                    const amountColor = isSettlement ? "#10B981" : "#E11D48";
+                    const amountPrefix = isSettlement ? "+" : "−";
+                    const amountLabel = isSettlement ? "Received" : "Your share";
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.activityItem,
+                          idx === sectionItems.length - 1 && { borderBottomWidth: 0 },
+                        ]}
+                        onPress={() => router.push(`/${item.groupId}` as any)}
+                        activeOpacity={0.7}
+                      >
+                        {/* Circular avatar + badge dot (web-style) */}
+                        <View style={{ position: "relative", flexShrink: 0 }}>
+                          <View style={[styles.actorAvatar, { backgroundColor: avatarColor }]}>
+                            <Text style={styles.actorAvatarText}>
+                              {item.actor.name.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+                            <Text style={{ fontSize: 9, color: "white", fontWeight: "700" }}>
+                              {isSettlement ? "✓" : "📄"}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Description + time */}
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.activityText} numberOfLines={2}>
+                            <Text style={{ fontWeight: "700" }}>{item.actor.name}</Text>
+                            {isSettlement
+                              ? ` settled up for "${item.title}"`
+                              : ` added "${item.title}" in ${item.groupName}`}
+                          </Text>
+                          <Text style={styles.activityTime}>🕐 {timeAgo(item.createdAt)}</Text>
+                        </View>
+
+                        {/* Amount */}
+                        <View style={{ alignItems: "flex-end", flexShrink: 0 }}>
+                          <Text style={[styles.activityAmount, { color: amountColor }]}>
+                            {amountPrefix} {s}{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Text>
+                          <Text style={styles.activityAmountLabel}>{amountLabel}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+
+            {/* End of recent updates (web-style dashed card) */}
             {!search && (
-              <View style={styles.endRow}>
-                <View style={styles.endLine} />
-                <Text style={styles.endText}>✦ END OF UPDATES</Text>
-                <View style={styles.endLine} />
+              <View style={[styles.endCard, { marginHorizontal: 16, marginBottom: 8 }]}>
+                <View style={styles.endIconCircle}>
+                  <Text style={{ fontSize: 22 }}>🕐</Text>
+                </View>
+                <Text style={styles.endTitle}>End of recent updates</Text>
+                <Text style={styles.endSubtitle}>
+                  You have seen all activity from the past 7 days.
+                </Text>
               </View>
             )}
           </>
@@ -314,7 +325,8 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 12, backgroundColor: BG,
+    paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F0EEFF",
   },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18,
@@ -322,63 +334,96 @@ const styles = StyleSheet.create({
   },
   headerBrand: { fontSize: 20, fontWeight: "900", color: PURPLE, letterSpacing: -0.3 },
   headerIconBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "#fff",
+    width: 36, height: 36, borderRadius: 18, backgroundColor: "#F5F0FF",
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
+    borderWidth: 1.5, borderColor: "#EDE9FE",
   },
 
-  pageTitleRow: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 },
-  pageTitle: { fontSize: 28, fontWeight: "900", color: "#0f172a", letterSpacing: -0.5 },
+  pageHeaderRow: {
+    flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14, gap: 12,
+  },
+  pageTitle: { fontSize: 28, fontWeight: "900", color: "#1D1A24", letterSpacing: -0.5, marginBottom: 4 },
+  pageSubtitle: { fontSize: 12, color: "#7B7487" },
+
+  filterPill: {
+    flexDirection: "row", backgroundColor: "white", borderRadius: 999, padding: 4,
+    borderWidth: 1, borderColor: "#F0EEFF", alignSelf: "flex-start", marginTop: 2,
+  },
+  pillBtn: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  pillBtnActive: { backgroundColor: PURPLE },
+  pillBtnText: { fontSize: 11, fontWeight: "500", color: "#4A4455", whiteSpace: "nowrap" as any },
+  pillBtnTextActive: { color: "white", fontWeight: "700" },
 
   searchWrap: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    marginHorizontal: 20, marginBottom: 20,
-    backgroundColor: "#fff", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    marginHorizontal: 16, marginBottom: 16,
+    backgroundColor: "#F5F0FF", borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: "#EDE9FE",
   },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 14, color: "#0f172a", padding: 0 },
+  searchIcon: { fontSize: 15 },
+  searchInput: { flex: 1, fontSize: 14, color: "#1D1A24", padding: 0 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: "700", color: "#94a3b8",
-    letterSpacing: 1, textTransform: "uppercase", marginBottom: 10,
+    fontSize: 11, fontWeight: "800", color: "#9CA3AF",
+    letterSpacing: 1.2, marginBottom: 10, marginLeft: 2,
   },
 
-  timelineCard: {
-    backgroundColor: "#fff", borderRadius: 18, overflow: "hidden",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  activityCard: {
+    backgroundColor: "#fff", borderRadius: 18, borderWidth: 1, borderColor: "#F0EEFF",
+    overflow: "hidden",
   },
-  timelineItem: {
+  activityItem: {
     flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: "#F3F0FF",
+    borderBottomWidth: 1, borderBottomColor: "#F5F0FF",
   },
-  timelineAvatar: {
-    width: 42, height: 42, borderRadius: 13,
+  actorAvatar: {
+    width: 48, height: 48, borderRadius: 24,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
-  timelineAvatarText: { fontSize: 16, fontWeight: "700", color: "#fff" },
-  timelineText: { fontSize: 14, fontWeight: "600", color: "#0f172a", marginBottom: 2 },
-  timelineGroup: { fontSize: 12, color: "#94a3b8" },
-  timelineAmount: { fontSize: 15, fontWeight: "800", marginBottom: 2 },
-  timelineLabel: { fontSize: 11, color: "#94a3b8" },
+  actorAvatarText: { fontSize: 18, fontWeight: "900", color: "white" },
+  badge: {
+    position: "absolute", bottom: -1, right: -1,
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 2, borderColor: "white",
+    alignItems: "center", justifyContent: "center",
+  },
+  activityText: { fontSize: 13, color: "#1D1A24", marginBottom: 4, lineHeight: 18 },
+  activityTime: { fontSize: 11, color: "#9CA3AF" },
+  activityAmount: { fontSize: 17, fontWeight: "900", letterSpacing: -0.3, marginBottom: 2 },
+  activityAmountLabel: { fontSize: 11, color: "#9CA3AF", fontWeight: "500" },
 
   centerState: { alignItems: "center", paddingTop: 80, gap: 12 },
-  loadingText: { fontSize: 14, color: "#94a3b8" },
+  loadingText: { fontSize: 14, color: "#9CA3AF" },
 
-  emptyState: { alignItems: "center", paddingTop: 60, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: "700", color: "#0f172a", marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: "#94a3b8", textAlign: "center", lineHeight: 20 },
-
-  endRow: {
-    flexDirection: "row", alignItems: "center", marginHorizontal: 20, marginTop: 8, marginBottom: 8, gap: 12,
+  emptyCard: {
+    marginHorizontal: 16, backgroundColor: "#fff", borderRadius: 18,
+    borderWidth: 1, borderColor: "#F0EEFF", padding: 48, alignItems: "center",
   },
-  endLine: { flex: 1, height: 1, backgroundColor: "#e2e8f0" },
-  endText: { fontSize: 11, fontWeight: "600", color: "#94a3b8", letterSpacing: 1 },
+  emptyIconCircle: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: "#F0EEFF",
+    alignItems: "center", justifyContent: "center", marginBottom: 14,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#1D1A24", marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: "#7B7487", textAlign: "center", lineHeight: 20 },
+
+  endCard: {
+    backgroundColor: "#fff", borderRadius: 18,
+    borderWidth: 2, borderColor: "#E4D9F7", borderStyle: "dashed",
+    padding: 32, alignItems: "center",
+  },
+  endIconCircle: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: "#F5F3FF",
+    alignItems: "center", justifyContent: "center", marginBottom: 12,
+  },
+  endTitle: { fontSize: 16, fontWeight: "700", color: "#1D1A24", marginBottom: 8 },
+  endSubtitle: { fontSize: 13, color: "#7B7487", textAlign: "center", maxWidth: 280 },
 
   tabBar: {
     flexDirection: "row", backgroundColor: "#fff",
-    borderTopWidth: 1, borderTopColor: "#F3F0FF", paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: "#F0EEFF", paddingTop: 10,
   },
   tabItem: { flex: 1, alignItems: "center", justifyContent: "center", position: "relative" },
   tabLabel: { fontSize: 9, letterSpacing: 0.2 },

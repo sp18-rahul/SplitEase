@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useLayoutEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Modal, Alert, RefreshControl, TextInput, Linking,
+  ActivityIndicator, Modal, Alert, RefreshControl, TextInput, Linking, Switch,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useNavigation, useFocusEffect } from "expo-router";
 import {
@@ -65,6 +66,47 @@ interface ActivityItem {
 
 type TabType = "balances" | "expenses" | "activity";
 
+// Compute raw pairwise debts from expenses (before debt simplification).
+// Returns one transaction per debtor-creditor pair (netted).
+function computeRawPairwiseTransactions(expenses: Expense[]): Transaction[] {
+  const debtMap: Record<number, Record<number, number>> = {};
+
+  for (const expense of expenses) {
+    const paidById = expense.paidBy.id;
+    for (const split of expense.splits) {
+      if (split.userId === paidById) continue;
+      if (!debtMap[split.userId]) debtMap[split.userId] = {};
+      debtMap[split.userId][paidById] =
+        (debtMap[split.userId][paidById] || 0) + split.amount;
+    }
+  }
+
+  const result: Transaction[] = [];
+  const processed = new Set<string>();
+
+  for (const fromStr of Object.keys(debtMap)) {
+    const from = parseInt(fromStr);
+    for (const toStr of Object.keys(debtMap[from])) {
+      const to = parseInt(toStr);
+      const key = [Math.min(from, to), Math.max(from, to)].join("-");
+      if (processed.has(key)) continue;
+      processed.add(key);
+
+      const forward = debtMap[from]?.[to] || 0;
+      const backward = debtMap[to]?.[from] || 0;
+      const net = forward - backward;
+
+      if (net > 0.005) {
+        result.push({ fromUserId: from, toUserId: to, amount: Math.round(net * 100) / 100 });
+      } else if (net < -0.005) {
+        result.push({ fromUserId: to, toUserId: from, amount: Math.round(-net * 100) / 100 });
+      }
+    }
+  }
+
+  return result;
+}
+
 export default function GroupDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -90,6 +132,24 @@ export default function GroupDetail() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [remindingSettlementId, setRemindingSettlementId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [minimizeTxns, setMinimizeTxns] = useState(true);
+
+  // Load Minimize Transactions preference from AsyncStorage on mount
+  React.useEffect(() => {
+    AsyncStorage.getItem(`minimize_txn_${groupId}`).then((val) => {
+      // Default to true (minimized) unless explicitly set to false
+      setMinimizeTxns(val === null ? true : val === "true");
+    });
+  }, [groupId]);
+
+  const toggleMinimizeTxns = async (val: boolean) => {
+    setMinimizeTxns(val);
+    await AsyncStorage.setItem(`minimize_txn_${groupId}`, val ? "true" : "false");
+    showToast(val
+      ? "Minimize Transactions ON — fewest payments to settle up ⚡"
+      : "Showing exact pairwise debts"
+    );
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -270,6 +330,9 @@ export default function GroupDetail() {
   // Use the settlement-aware balance from the API instead of recalculating from expenses
   const myBalance = currentUserId ? (apiBalances[currentUserId] || 0) : 0;
 
+  // displayTxns: minimized (API) or raw pairwise depending on toggle
+  const displayTxns = minimizeTxns ? txns : computeRawPairwiseTransactions(group.expenses);
+
   const filteredExpenses = group.expenses.filter((e) => {
     const q = search.toLowerCase();
     const matchesSearch = !q ||
@@ -295,14 +358,14 @@ export default function GroupDetail() {
   // On tablet: left column = summary/chart/balances, right column = expenses
   const renderBalancesPanel = () => (
     <>
-      {txns.length === 0 ? (
+      {displayTxns.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={{ fontSize: r.fs(48), marginBottom: r.s(12) }}>🎉</Text>
           <Text style={[styles.emptyTitle, { fontSize: r.fs(18) }]}>All settled up!</Text>
           <Text style={[styles.emptySub, { fontSize: r.fs(13) }]}>No payments needed right now.</Text>
         </View>
       ) : (
-        txns.map((t, i) => {
+        displayTxns.map((t, i) => {
           const isMyTxn = !!(currentUserId && (t.fromUserId === currentUserId || t.toUserId === currentUserId));
           const toUpiId = getMemberUpiId(t.toUserId);
           return (
@@ -613,13 +676,39 @@ export default function GroupDetail() {
             </View>
             <Text style={{ fontSize: 12, color: "#8B5CF6" }}>{group.members.length} members</Text>
           </View>
+          {/* Minimize Transactions toggle */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: minimizeTxns ? "#F3F0FF" : "rgba(255,255,255,0.5)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12, borderWidth: 1, borderColor: minimizeTxns ? PURPLE_LIGHT : "rgba(255,255,255,0.3)" }}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 15 }}>⚡</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#1a0533" }}>Minimize Transactions</Text>
+                {minimizeTxns && (
+                  <View style={{ backgroundColor: PURPLE, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: "white" }}>ON</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ fontSize: 11, color: "#8B5CF6", marginTop: 2 }}>
+                {minimizeTxns
+                  ? "Fewest payments needed to settle all debts"
+                  : "Showing exact debts from each expense"}
+              </Text>
+            </View>
+            <Switch
+              value={minimizeTxns}
+              onValueChange={toggleMinimizeTxns}
+              trackColor={{ false: "#e2e8f0", true: PURPLE }}
+              thumbColor="#fff"
+            />
+          </View>
+
           {/* Action buttons */}
           <View style={{ flexDirection: "row", gap: 10 }}>
-            {txns.some(t => t.fromUserId === currentUserId || t.toUserId === currentUserId) && (
+            {displayTxns.some(t => t.fromUserId === currentUserId || t.toUserId === currentUserId) && (
               <TouchableOpacity
                 style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: PURPLE, paddingVertical: 12, borderRadius: 12 }}
                 onPress={() => {
-                  const myTxn = txns.find(t => t.fromUserId === currentUserId || t.toUserId === currentUserId);
+                  const myTxn = displayTxns.find(t => t.fromUserId === currentUserId || t.toUserId === currentUserId);
                   if (myTxn) setSettleModal(myTxn);
                 }}
               >

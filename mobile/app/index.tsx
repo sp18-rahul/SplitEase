@@ -1,14 +1,12 @@
 import React, { useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { groups } from "@/api/client";
 import { useAuth } from "@/context/auth";
-import { useTheme } from "@/context/theme";
-import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
 const PURPLE_LIGHT = "#EDE9FE";
@@ -18,7 +16,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥", AED: "د.إ",
 };
 
-const AVATAR_COLORS = [PURPLE, "#A78BFA", "#6D28D9", "#8B5CF6", "#C4B5FD"];
+const AVATAR_COLORS = [PURPLE, "#10B981", "#F59E0B", "#3B82F6", "#EF4444", "#8B5CF6", "#EC4899"];
 
 interface Group {
   id: number;
@@ -30,8 +28,10 @@ interface Group {
   settlements?: Array<{ fromUserId: number; toUserId: number; amount: number }>;
 }
 
-// ── AVATAR STACK ──────────────────────────────────────────────────────────────
-function AvatarStack({ members, size = 26 }: { members: Array<{ user: { name: string } }>, size?: number }) {
+type FilterTab = "all" | "active" | "settled";
+
+// ── Avatar Stack ──────────────────────────────────────────────────────────────
+function AvatarStack({ members }: { members: Array<{ user: { name: string } }> }) {
   const shown = members.slice(0, 3);
   const extra = members.length - 3;
   return (
@@ -40,83 +40,29 @@ function AvatarStack({ members, size = 26 }: { members: Array<{ user: { name: st
         <View
           key={i}
           style={{
-            width: size, height: size, borderRadius: size / 2,
+            width: 28, height: 28, borderRadius: 14,
             backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length],
-            borderWidth: 1.5, borderColor: "white",
+            borderWidth: 2, borderColor: "white",
             alignItems: "center", justifyContent: "center",
-            marginLeft: i === 0 ? 0 : -(size * 0.3),
+            marginLeft: i === 0 ? 0 : -8,
             zIndex: shown.length - i,
           }}
         >
-          <Text style={{ fontSize: size * 0.42, fontWeight: "700", color: "white" }}>
+          <Text style={{ fontSize: 10, fontWeight: "900", color: "white" }}>
             {m.user.name.charAt(0).toUpperCase()}
           </Text>
         </View>
       ))}
       {extra > 0 && (
         <View style={{
-          width: size, height: size, borderRadius: size / 2,
-          backgroundColor: PURPLE_LIGHT, borderWidth: 1.5, borderColor: "white",
-          alignItems: "center", justifyContent: "center",
-          marginLeft: -(size * 0.3),
+          width: 28, height: 28, borderRadius: 14,
+          backgroundColor: PURPLE_LIGHT, borderWidth: 2, borderColor: "white",
+          alignItems: "center", justifyContent: "center", marginLeft: -8,
         }}>
-          <Text style={{ fontSize: size * 0.38, fontWeight: "700", color: PURPLE }}>+{extra}</Text>
+          <Text style={{ fontSize: 10, fontWeight: "700", color: PURPLE }}>+{extra}</Text>
         </View>
       )}
     </View>
-  );
-}
-
-// ── GROUP CARD ────────────────────────────────────────────────────────────────
-function GroupCard({
-  item, onPress, currentUserId, colors, isDark,
-}: { item: Group; onPress: () => void; currentUserId: number; colors: any; isDark: boolean }) {
-  const sym = CURRENCY_SYMBOLS[item.currency || "INR"] || "₹";
-  const expenses = item.expenses || [];
-  let totalPaid = expenses.reduce((s, e) => s + (e.paidById === currentUserId ? e.amount : 0), 0);
-  let totalOwes = expenses.reduce((s, e) => {
-    const split = e.splits?.find(sp => sp.userId === currentUserId);
-    return s + (split ? split.amount : 0);
-  }, 0);
-  // Apply settlements so balance reflects what has actually been paid
-  (item.settlements || []).forEach(s => {
-    if (s.fromUserId === currentUserId) totalPaid += s.amount;
-    if (s.toUserId === currentUserId) totalOwes += s.amount;
-  });
-  const balance = totalPaid - totalOwes;
-  const isOwed = balance > 0;
-  const isOwes = balance < 0;
-
-  return (
-    <TouchableOpacity style={[styles.card, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : "#F3F0FF" }]} onPress={onPress} activeOpacity={0.85}>
-      {/* Icon */}
-      <View style={styles.cardIcon}>
-        <Text style={{ fontSize: item.emoji ? 22 : 18, fontWeight: "700", color: PURPLE }}>
-          {item.emoji || item.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
-
-      {/* Info */}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
-          <AvatarStack members={item.members} size={22} />
-          <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
-            {item.members.length} member{item.members.length !== 1 ? "s" : ""}
-          </Text>
-        </View>
-      </View>
-
-      {/* Balance */}
-      <View style={{ alignItems: "flex-end" }}>
-        <Text style={[styles.cardBalance, { color: isOwed ? PURPLE : isOwes ? "#dc2626" : "#94a3b8" }]}>
-          {isOwes ? "-" : "+"}{sym}{Math.abs(balance).toFixed(0)}
-        </Text>
-        <Text style={[styles.cardBalanceLbl, { color: isOwed ? PURPLE : isOwes ? "#dc2626" : "#94a3b8" }]}>
-          {isOwed ? "owed" : isOwes ? "owes" : "settled"}
-        </Text>
-      </View>
-    </TouchableOpacity>
   );
 }
 
@@ -125,62 +71,42 @@ export default function HomeScreen() {
   const { user, logout } = useAuth();
   if (!user) return <Redirect href="/login" />;
 
-  const r = useResponsive();
   const insets = useSafeAreaInsets();
   const currentUserId = user.userId;
-  const { colors, isDark } = useTheme();
 
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
 
   const fetchGroups = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     try {
       const res = await groups.getAll();
       setGroupsList(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-      // Still show empty list, don't crash
+    } catch {
       setGroupsList([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useFocusEffect(useCallback(() => { fetchGroups(); }, [fetchGroups]));
 
-  // Compute totals — include settlements so paid debts don't keep showing
-  const getGroupBalance = (g: Group) => {
+  const getBalance = (g: Group) => {
     const expenses = g.expenses || [];
     let paid = expenses.reduce((s, e) => s + (e.paidById === currentUserId ? e.amount : 0), 0);
-    let owes = expenses.reduce((s, e) => { const sp = e.splits?.find(x => x.userId === currentUserId); return s + (sp ? sp.amount : 0); }, 0);
+    let owes = expenses.reduce((s, e) => {
+      const sp = e.splits?.find(x => x.userId === currentUserId);
+      return s + (sp ? sp.amount : 0);
+    }, 0);
     (g.settlements || []).forEach(s => {
       if (s.fromUserId === currentUserId) paid += s.amount;
       if (s.toUserId === currentUserId) owes += s.amount;
     });
     return paid - owes;
   };
-
-  const youOwe = groupsList.reduce((sum, g) => {
-    const bal = getGroupBalance(g);
-    return sum + Math.max(0, -bal);
-  }, 0);
-
-  const owedToYou = groupsList.reduce((sum, g) => {
-    const bal = getGroupBalance(g);
-    return sum + Math.max(0, bal);
-  }, 0);
-
-  const totalBalance = owedToYou - youOwe;
-  const isPositive = totalBalance >= 0;
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={PURPLE} />
-      </View>
-    );
-  }
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -189,29 +115,39 @@ export default function HomeScreen() {
     ]);
   };
 
+  const filteredGroups = groupsList.filter(g => {
+    if (activeFilter === "all") return true;
+    const bal = getBalance(g);
+    if (activeFilter === "active") return Math.abs(bal) > 0.01;
+    if (activeFilter === "settled") return Math.abs(bal) <= 0.01;
+    return true;
+  });
+
+  const maxSpend = Math.max(...groupsList.map(g => g.expenses.reduce((s, e) => s + e.amount, 0)), 1);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={PURPLE} />
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <TouchableOpacity
-            onPress={() => router.push("/profile")}
-            style={styles.headerAvatar}
-          >
+          <TouchableOpacity onPress={() => router.push("/profile")} style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "white" }}>
               {user.name?.charAt(0).toUpperCase() || "?"}
             </Text>
           </TouchableOpacity>
           <Text style={styles.headerBrand}>SplitEase</Text>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={[styles.headerIconBtn, { backgroundColor: colors.surface }]}
-          >
-            <Text style={{ fontSize: 16 }}>🚪</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
+          <Text style={{ fontSize: 16 }}>🚪</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -221,77 +157,136 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchGroups(true); }} tintColor={PURPLE} />
         }
       >
-        {/* ── BALANCE CARD ── */}
-        {groupsList.length > 0 && (
-          <View style={[styles.balanceCard, { margin: 16, backgroundColor: PURPLE_LIGHT }]}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <Text style={[styles.balanceAmount, { color: isDark ? PURPLE : "#1a0533" }]}>
-              ₹{Math.abs(totalBalance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-            </Text>
-            <Text style={[styles.balanceSubtitle, { color: isPositive ? "#16a34a" : "#dc2626" }]}>
-              {isPositive ? "↑" : "↓"} {isPositive
-                ? `You are owed ₹${owedToYou.toFixed(0)}`
-                : `You owe ₹${youOwe.toFixed(0)}`}
-            </Text>
-
-            <View style={styles.balanceStatsRow}>
-              <View style={styles.balanceStat}>
-                <Text style={styles.balanceStatLabel}>You Owe</Text>
-                <Text style={[styles.balanceStatValue, { color: "#dc2626" }]}>
-                  ₹{youOwe.toFixed(0)}
-                </Text>
-              </View>
-              <View style={[styles.balanceStat, { borderLeftWidth: 1, borderLeftColor: "#EDE9FE" }]}>
-                <Text style={styles.balanceStatLabel}>Owed to You</Text>
-                <Text style={[styles.balanceStatValue, { color: PURPLE }]}>
-                  ₹{owedToYou.toFixed(0)}
-                </Text>
-              </View>
-            </View>
+        {/* ── PAGE HEADER ── */}
+        <View style={styles.pageHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pageTitle}>My Groups</Text>
+            <Text style={styles.pageSubtitle}>Track and split expenses with your favorite circles.</Text>
           </View>
-        )}
+          <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/new-group")}>
+            <Text style={styles.createBtnText}>＋ Create</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* ── ACTIVE GROUPS ── */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Groups</Text>
-            <TouchableOpacity onPress={() => router.push("/new-group")}>
-              <Text style={styles.sectionLink}>VIEW ALL</Text>
+        {/* ── FILTER TABS ── */}
+        <View style={styles.filterRow}>
+          {(["all", "active", "settled"] as FilterTab[]).map(f => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setActiveFilter(f)}
+              style={[styles.filterBtn, activeFilter === f && styles.filterBtnActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.filterBtnText, activeFilter === f && styles.filterBtnTextActive]}>
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </Text>
             </TouchableOpacity>
-          </View>
+          ))}
+        </View>
 
-          {groupsList.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={{ fontSize: 48, marginBottom: 12 }}>🤝</Text>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No groups yet</Text>
-              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Create a group to start splitting expenses</Text>
-              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push("/new-group")}>
-                <Text style={styles.emptyBtnText}>+ Create Group</Text>
-              </TouchableOpacity>
+        <View style={{ paddingHorizontal: 16 }}>
+          {filteredGroups.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconCircle}>
+                <Text style={{ fontSize: 28 }}>👥</Text>
+              </View>
+              <Text style={styles.emptyTitle}>
+                {groupsList.length === 0 ? "No groups yet" : "No groups match filter"}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {groupsList.length === 0
+                  ? "Create a group to start splitting expenses."
+                  : "Try a different filter."}
+              </Text>
+              {groupsList.length === 0 && (
+                <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push("/new-group")}>
+                  <Text style={styles.emptyBtnText}>＋ Create a Group</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
-            groupsList.map(item => (
-              <GroupCard
-                key={item.id}
-                item={item}
-                currentUserId={currentUserId}
-                onPress={() => router.push(`/${item.id}`)}
-                colors={colors}
-                isDark={isDark}
-              />
-            ))
-          )}
+            <>
+              {filteredGroups.map(group => {
+                const totalSpend = group.expenses.reduce((s, e) => s + e.amount, 0);
+                const balance = getBalance(group);
+                const isOwed = balance > 0.01;
+                const isOwing = balance < -0.01;
+                const isSettled = !isOwed && !isOwing;
+                const progressPct = Math.min((totalSpend / maxSpend) * 100, 100);
+                const currency = CURRENCY_SYMBOLS[group.currency || "INR"] || "₹";
+                const barColor = isSettled ? "#D1D5DB" : isOwed ? PURPLE : "#D97706";
 
-          {/* New group dashed CTA */}
-          {groupsList.length > 0 && (
-            <TouchableOpacity style={[styles.newGroupBtn, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : "#DDD6FE" }]} onPress={() => router.push("/new-group")}>
-              <Text style={{ color: PURPLE, fontWeight: "700", fontSize: 14 }}>+ Create New Group</Text>
-            </TouchableOpacity>
+                return (
+                  <TouchableOpacity
+                    key={group.id}
+                    style={styles.groupCard}
+                    onPress={() => router.push(`/${group.id}`)}
+                    activeOpacity={0.85}
+                  >
+                    {/* Top row: emoji + name + members */}
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+                      <View style={[
+                        styles.groupIcon,
+                        { backgroundColor: isSettled ? "#F3F4F6" : "#F5F3FF", borderColor: isSettled ? "#E5E7EB" : PURPLE_LIGHT }
+                      ]}>
+                        <Text style={{ fontSize: group.emoji ? 22 : 18 }}>
+                          {group.emoji || "👥"}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text style={styles.groupName} numberOfLines={1}>{group.name}</Text>
+                          {isSettled && <Text style={{ fontSize: 14 }}>✅</Text>}
+                        </View>
+                        <Text style={styles.groupMembers}>👥 {group.members.length} members</Text>
+                      </View>
+                    </View>
+
+                    {/* Total spent + progress bar */}
+                    <View style={{ marginBottom: 14 }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                        <Text style={styles.spendLabel}>Total Spent</Text>
+                        <Text style={styles.spendAmount}>
+                          {currency}{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                      <View style={styles.progressTrack}>
+                        <View style={[styles.progressBar, { width: `${progressPct}%` as any, backgroundColor: barColor }]} />
+                      </View>
+                    </View>
+
+                    {/* Bottom: avatar stack + balance */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <AvatarStack members={group.members} />
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.balanceTag}>
+                          {isOwed ? "YOU ARE OWED" : isOwing ? "YOU OWE" : "SETTLED"}
+                        </Text>
+                        <Text style={[styles.balanceAmount, {
+                          color: isOwed ? PURPLE : isOwing ? "#E11D48" : "#9CA3AF"
+                        }]}>
+                          {currency}{Math.abs(balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Dashed "Create New Group" card */}
+              <TouchableOpacity style={styles.dashedCard} onPress={() => router.push("/new-group")} activeOpacity={0.8}>
+                <View style={styles.dashedIconCircle}>
+                  <Text style={{ fontSize: 22, color: PURPLE }}>＋</Text>
+                </View>
+                <Text style={styles.dashedTitle}>Start a New Group</Text>
+                <Text style={styles.dashedSubtitle}>Perfect for roommates or travel.</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </ScrollView>
 
-      {/* ── FAB ── Quick Add Expense ── */}
+      {/* ── FAB ── */}
       {groupsList.length > 0 && (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 76 }]}
@@ -299,7 +294,7 @@ export default function HomeScreen() {
             if (groupsList.length === 1) {
               router.push(`/${groupsList[0].id}/add-expense`);
             } else {
-              Alert.alert("Select Group", "Which group do you want to add an expense to?", [
+              Alert.alert("Select Group", "Which group?", [
                 ...groupsList.map(g => ({
                   text: g.name,
                   onPress: () => router.push(`/${g.id}/add-expense`),
@@ -315,7 +310,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── BOTTOM TAB BAR ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: isDark ? colors.border : "#F3F0FF" }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: true, onPress: undefined },
           { label: "EXPENSES", emoji: "🧾", active: false, onPress: () => router.push("/expenses") },
@@ -330,7 +325,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 18, marginBottom: 1 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveIndicator} />}
@@ -342,10 +337,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Header
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F0EEFF",
   },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18,
@@ -353,86 +348,78 @@ const styles = StyleSheet.create({
   },
   headerBrand: { fontSize: 20, fontWeight: "900", color: PURPLE, letterSpacing: -0.3 },
   headerIconBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36, height: 36, borderRadius: 18, backgroundColor: "#F5F0FF",
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
+    borderWidth: 1.5, borderColor: PURPLE_LIGHT,
   },
 
-  // Balance Card
-  balanceCard: {
-    backgroundColor: PURPLE_LIGHT, borderRadius: 20, padding: 20,
+  pageHeader: {
+    flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingTop: 20, paddingBottom: 14,
   },
-  balanceLabel: {
-    fontSize: 11, fontWeight: "700", color: PURPLE,
-    textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6,
+  pageTitle: { fontSize: 28, fontWeight: "900", color: "#1D1A24", letterSpacing: -0.5, marginBottom: 4 },
+  pageSubtitle: { fontSize: 13, color: "#7B7487" },
+  createBtn: {
+    backgroundColor: PURPLE, borderRadius: 999,
+    paddingHorizontal: 16, paddingVertical: 10, alignSelf: "flex-start", marginTop: 4,
   },
-  balanceAmount: {
-    fontSize: 38, fontWeight: "900", color: "#1a0533", letterSpacing: -1, marginBottom: 4,
-  },
-  balanceSubtitle: {
-    fontSize: 13, fontWeight: "600", marginBottom: 16,
-  },
-  balanceStatsRow: {
-    flexDirection: "row", backgroundColor: "white", borderRadius: 12, overflow: "hidden",
-  },
-  balanceStat: {
-    flex: 1, paddingVertical: 12, paddingHorizontal: 14,
-  },
-  balanceStatLabel: {
-    fontSize: 10, fontWeight: "600", color: "#94a3b8",
-    textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4,
-  },
-  balanceStatValue: {
-    fontSize: 18, fontWeight: "800",
-  },
+  createBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
 
-  // Section
-  sectionHeader: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    marginBottom: 14,
+  filterRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 16 },
+  filterBtn: {
+    borderRadius: 999, paddingHorizontal: 18, paddingVertical: 8,
+    borderWidth: 1, borderColor: "#E4D9F7", backgroundColor: "white",
   },
-  sectionTitle: { fontSize: 17, fontWeight: "800" },
-  sectionLink: { fontSize: 12, fontWeight: "700", color: PURPLE, letterSpacing: 0.5 },
+  filterBtnActive: { backgroundColor: PURPLE, borderColor: PURPLE },
+  filterBtnText: { fontSize: 13, fontWeight: "600", color: "#4A4455" },
+  filterBtnTextActive: { color: "white", fontWeight: "700" },
 
-  // Group Card
-  card: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    borderRadius: 16, padding: 14,
-    marginBottom: 10,
-    shadowColor: "#7C3AED", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-    borderWidth: 1,
+  groupCard: {
+    backgroundColor: "#fff", borderRadius: 18, borderWidth: 1, borderColor: "#F0EEFF",
+    padding: 18, marginBottom: 14,
   },
-  cardIcon: {
-    width: 46, height: 46, borderRadius: 14, backgroundColor: PURPLE_LIGHT,
-    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  groupIcon: {
+    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+    borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
-  cardName: { fontSize: 15, fontWeight: "700" },
-  cardSub: { fontSize: 12, fontWeight: "500" },
-  cardBalance: { fontSize: 15, fontWeight: "800" },
-  cardBalanceLbl: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.3, marginTop: 1 },
+  groupName: { fontSize: 18, fontWeight: "900", color: "#1D1A24", marginBottom: 4 },
+  groupMembers: { fontSize: 12, color: "#9CA3AF" },
 
-  // New Group CTA
-  newGroupBtn: {
-    alignItems: "center", justifyContent: "center", padding: 14,
-    borderRadius: 16, borderWidth: 2, borderColor: "#DDD6FE",
-    borderStyle: "dashed", marginBottom: 16, backgroundColor: "white",
-  },
+  spendLabel: { fontSize: 12, color: "#9CA3AF", fontWeight: "500" },
+  spendAmount: { fontSize: 20, fontWeight: "900", color: "#1D1A24", letterSpacing: -0.5 },
+  progressTrack: { backgroundColor: "#F0EEFF", borderRadius: 999, height: 7 },
+  progressBar: { height: 7, borderRadius: 999 },
 
-  // Empty state
-  empty: {
-    alignItems: "center", paddingVertical: 48, paddingHorizontal: 32,
+  balanceTag: { fontSize: 10, fontWeight: "700", color: "#9CA3AF", letterSpacing: 0.5, marginBottom: 2 },
+  balanceAmount: { fontSize: 16, fontWeight: "900", letterSpacing: -0.3 },
+
+  emptyCard: {
+    backgroundColor: "#fff", borderRadius: 18, borderWidth: 1, borderColor: "#F0EEFF",
+    padding: 48, alignItems: "center", marginBottom: 16,
   },
-  emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
-  emptySub: { fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  emptyIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: "#F0EEFF",
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: "#1D1A24", marginBottom: 8 },
+  emptySubtitle: { fontSize: 13, color: "#7B7487", textAlign: "center", marginBottom: 20 },
   emptyBtn: {
-    backgroundColor: PURPLE, paddingHorizontal: 24, paddingVertical: 13,
-    borderRadius: 14,
+    backgroundColor: PURPLE, borderRadius: 999, paddingHorizontal: 24, paddingVertical: 11,
+    flexDirection: "row", alignItems: "center", gap: 6,
   },
-  emptyBtnText: { color: "white", fontWeight: "700", fontSize: 15 },
+  emptyBtnText: { color: "white", fontWeight: "700", fontSize: 14 },
 
-  // FAB
+  dashedCard: {
+    borderWidth: 2, borderColor: "#D8CAFD", borderStyle: "dashed",
+    borderRadius: 18, padding: 32, alignItems: "center", marginBottom: 16,
+  },
+  dashedIconCircle: {
+    width: 52, height: 52, borderRadius: 26, backgroundColor: PURPLE_LIGHT,
+    alignItems: "center", justifyContent: "center", marginBottom: 14,
+  },
+  dashedTitle: { fontSize: 14, fontWeight: "700", color: "#1D1A24", marginBottom: 6 },
+  dashedSubtitle: { fontSize: 12, color: "#9CA3AF" },
+
   fab: {
     position: "absolute", right: 20, width: 56, height: 56, borderRadius: 28,
     backgroundColor: PURPLE, alignItems: "center", justifyContent: "center",
@@ -440,18 +427,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
   },
 
-  // Bottom Tab Bar
   tabBar: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    paddingTop: 10,
-    shadowColor: PURPLE, shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,
+    flexDirection: "row", backgroundColor: "#fff",
+    borderTopWidth: 1, borderTopColor: "#F0EEFF", paddingTop: 10,
   },
-  tabItem: {
-    flex: 1, alignItems: "center", justifyContent: "center",
-    paddingVertical: 4, position: "relative",
-  },
+  tabItem: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4, position: "relative" },
   tabLabel: { fontSize: 9, letterSpacing: 0.2, textTransform: "uppercase", marginTop: 1 },
   tabActiveIndicator: {
     position: "absolute", top: 0, left: "25%", right: "25%",
