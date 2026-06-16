@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Share, ActivityIndicator, RefreshControl,
+  ScrollView, Share, ActivityIndicator, RefreshControl, Alert, Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
-import { groups as groupsApi, balances as balancesApi } from "@/api/client";
+import { useTheme } from "@/context/theme";
+import { groups as groupsApi, balances as balancesApi, users as usersApi } from "@/api/client";
 
 // Re-implementation of backend calculateBalances for pairwise debt calculation
 // Returns netBalance[friendId] relative to currentUser:
@@ -85,17 +86,59 @@ function avatarColor(id: number): string {
 
 export default function FriendsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
   const currentUserId = user.userId;
   const initial = user.name?.charAt(0).toUpperCase() || "?";
+  const { colors, isDark } = useTheme();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [addFriendSearch, setAddFriendSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [sentRequests, setSentRequests] = useState<Set<number>>(new Set());
+
+  const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign Out", style: "destructive", onPress: logout },
+    ]);
+  };
+
+  // Search for users to add as friends
+  const handleSearchUsers = useCallback(async (query: string) => {
+    setAddFriendSearch(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await usersApi.search(query);
+      const users = Array.isArray(res.data) ? res.data : [];
+      setSearchResults(users.filter(u => u.id !== currentUserId));
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [currentUserId]);
+
+  const handleAddFriend = useCallback(async (userId: number) => {
+    setSentRequests(new Set([...sentRequests, userId]));
+    try {
+      await usersApi.sendFriendRequest(userId);
+    } catch {
+      Alert.alert("Error", "Failed to send friend request");
+      setSentRequests(new Set([...sentRequests].filter(id => id !== userId)));
+    }
+  }, [sentRequests]);
 
   // ── Fetch groups → compute true pairwise debts (not redistributed transactions) ──
   const fetchFriends = useCallback(async (isRefresh = false) => {
@@ -193,18 +236,23 @@ export default function FriendsScreen() {
   const totalIOwe = friends.reduce((s, f) => s + (f.balance < 0 ? Math.abs(f.balance) : 0), 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
           </View>
           <Text style={styles.headerBrand}>SplitEase</Text>
         </View>
-        <TouchableOpacity style={styles.headerIconBtn}>
-          <Text style={{ fontSize: 16 }}>⚙️</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowAddFriendModal(true)}>
+            <Text style={{ fontSize: 16 }}>➕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
+            <Text style={{ fontSize: 16 }}>🚪</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -390,6 +438,100 @@ export default function FriendsScreen() {
         )}
       </ScrollView>
 
+      {/* ── ADD FRIEND MODAL ── */}
+      <Modal visible={showAddFriendModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Friend</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Search and invite friends</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowAddFriendModal(false)}>
+                <Text style={{ fontSize: 24, color: colors.textSecondary }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Search */}
+            <View style={styles.modalSearchWrap}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={[styles.modalSearchInput, { color: colors.text }]}
+                placeholder="Search by name or email..."
+                placeholderTextColor={colors.textSecondary}
+                value={addFriendSearch}
+                onChangeText={handleSearchUsers}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* Results */}
+            <ScrollView style={styles.modalResults} showsVerticalScrollIndicator={false}>
+              {searching ? (
+                <View style={styles.centerState}>
+                  <ActivityIndicator size="large" color={PURPLE} />
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Searching...</Text>
+                </View>
+              ) : addFriendSearch.trim() && searchResults.length === 0 ? (
+                <View style={styles.centerState}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>No users found</Text>
+                </View>
+              ) : (
+                searchResults.map((user) => {
+                  const isAlreadyFriend = friends.some(f => f.id === user.id);
+                  const requestSent = sentRequests.has(user.id);
+                  return (
+                    <View
+                      key={user.id}
+                      style={[styles.userSearchResult, {
+                        backgroundColor: colors.background,
+                        borderBottomColor: colors.border,
+                        opacity: isAlreadyFriend ? 0.6 : 1,
+                      }]}
+                    >
+                      <View style={[styles.userAvatar, { backgroundColor: AVATAR_COLORS[user.id % AVATAR_COLORS.length] }]}>
+                        <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff" }}>
+                          {user.name?.charAt(0).toUpperCase() || "?"}
+                        </Text>
+                      </View>
+
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+                          {user.name}
+                        </Text>
+                        <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>
+                          {user.email}
+                        </Text>
+                      </View>
+
+                      {isAlreadyFriend ? (
+                        <View style={styles.statusBadge}>
+                          <Text style={styles.statusBadgeText}>Friends ✓</Text>
+                        </View>
+                      ) : requestSent ? (
+                        <View style={[styles.statusBadge, { backgroundColor: "#EDE9FE" }]}>
+                          <Text style={[styles.statusBadgeText, { color: PURPLE }]}>Sent</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.addBtn}
+                          onPress={() => handleAddFriend(user.id)}
+                        >
+                          <Text style={styles.addBtnText}>Add</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── BOTTOM NAV ── */}
       <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
         {[
@@ -527,4 +669,46 @@ const styles = StyleSheet.create({
     position: "absolute", top: -10, left: "25%", right: "25%",
     height: 3, backgroundColor: PURPLE, borderRadius: 2,
   },
+
+  modalContainer: {
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 16, maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
+    marginBottom: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#F3F0FF",
+  },
+  modalTitle: { fontSize: 20, fontWeight: "900", marginBottom: 4 },
+  modalSubtitle: { fontSize: 13, color: "#94a3b8" },
+
+  modalSearchWrap: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: "#fff", borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10,
+    marginBottom: 16, borderWidth: 1, borderColor: "#EDE9FE",
+  },
+  modalSearchInput: { flex: 1, fontSize: 14, padding: 0 },
+
+  modalResults: { maxHeight: 400 },
+  userSearchResult: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    padding: 12, borderBottomWidth: 1, borderBottomColor: "#F3F0FF",
+  },
+  userAvatar: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  userName: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
+  userEmail: { fontSize: 12 },
+
+  statusBadge: {
+    backgroundColor: "#DCFCE7", borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: "700", color: "#16a34a" },
+
+  addBtn: {
+    backgroundColor: PURPLE, borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 6,
+  },
+  addBtnText: { color: "#fff", fontWeight: "700", fontSize: 12 },
 });

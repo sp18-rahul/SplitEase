@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, RefreshControl,
+  ScrollView, ActivityIndicator, RefreshControl, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { groups as groupsApi, activityApi } from "@/api/client";
 
 const PURPLE = "#7C3AED";
@@ -60,17 +61,25 @@ function avatarColor(name: string): string {
 
 export default function ActivityScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
   const currentUserId = user.userId;
   const initial = user.name?.charAt(0).toUpperCase() || "?";
+  const { colors, isDark } = useTheme();
 
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+
+  const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign Out", style: "destructive", onPress: logout },
+    ]);
+  };
 
   // ── Fetch all groups → fetch activity per group in parallel ──
   const fetchActivity = useCallback(async (isRefresh = false) => {
@@ -194,17 +203,17 @@ export default function ActivityScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
           </View>
           <Text style={styles.headerBrand}>SplitEase</Text>
         </View>
-        <TouchableOpacity style={styles.headerIconBtn}>
-          <Text style={{ fontSize: 16 }}>⚙️</Text>
+        <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
+          <Text style={{ fontSize: 16 }}>🚪</Text>
         </TouchableOpacity>
       </View>
 

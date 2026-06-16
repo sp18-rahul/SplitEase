@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { setOnUnauthorized } from "@/api/client";
 
 interface AuthUser {
   userId: number;
@@ -20,7 +21,27 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Restore session on app start
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/users/profile`, {
+          headers: { "Content-Type": "application/json" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser({ userId: data.id, name: data.name, email: data.email });
+        }
+      } catch {
+        // Silent fail - no active session
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    restoreSession();
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
@@ -48,6 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateName = useCallback((name: string) => {
     setUser((prev) => (prev ? { ...prev, name } : null));
   }, []);
+
+  // Register logout callback for API interceptor
+  useEffect(() => {
+    setOnUnauthorized(logout);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, logout, updateName }}>

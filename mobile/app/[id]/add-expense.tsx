@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { groups, expenses } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -51,6 +52,7 @@ export default function AddExpenseScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const groupId = parseInt(id as string);
@@ -84,7 +86,12 @@ export default function AddExpenseScreen() {
         });
         setPercentages(initPct);
         setExactAmounts(initAmt);
-      } catch { Alert.alert("Error", "Failed to load group"); router.back(); }
+      } catch (error: any) {
+        console.error("Error loading group:", error);
+        const msg = error.response?.data?.error || error.message || "Failed to load group";
+        Alert.alert("Error", msg);
+        router.back();
+      }
       finally { setLoading(false); }
     })();
   }, [groupId]);
@@ -141,7 +148,11 @@ export default function AddExpenseScreen() {
         splits: buildSplits(), category,
       });
       router.back();
-    } catch { Alert.alert("Error", "Failed to add expense. Try again."); }
+    } catch (error: any) {
+      console.error("Error adding expense:", error);
+      const msg = error.response?.data?.error || error.message || "Failed to add expense. Check your connection and try again.";
+      Alert.alert("Error", msg);
+    }
     finally { setSubmitting(false); }
   };
 

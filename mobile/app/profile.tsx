@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator, Switch,
+  ScrollView, Alert, ActivityIndicator, Switch, Appearance,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, Redirect } from "expo-router";
 import { users } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -16,6 +17,9 @@ const BG = "#F8F5FF";
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, updateName } = useAuth();
+  if (!user) return <Redirect href="/login" />;
+
+  const { theme, setTheme, colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
 
@@ -26,6 +30,7 @@ export default function ProfileScreen() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+  const [settingTheme, setSettingTheme] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -57,29 +62,40 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleThemeChange = async (newTheme: "light" | "dark" | "system") => {
+    setSettingTheme(true);
+    try {
+      await setTheme(newTheme);
+    } catch (error) {
+      console.error("Failed to update theme:", error);
+    } finally {
+      setSettingTheme(false);
+    }
+  };
+
   const initial = user?.name?.charAt(0).toUpperCase() || "?";
 
   if (loadingProfile) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={PURPLE} /></View>;
+    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={PURPLE} /></View>;
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
           </View>
-          <Text style={styles.headerBrand}>SplitEase</Text>
+          <Text style={[styles.headerBrand, { color: colors.text }]}>SplitEase</Text>
         </View>
-        <TouchableOpacity style={styles.headerIconBtn}>
+        <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: colors.surface }]}>
           <Text style={{ fontSize: 16 }}>⚙️</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 96, paddingHorizontal: 20 }}
         showsVerticalScrollIndicator={false}
       >
@@ -126,12 +142,12 @@ export default function ProfileScreen() {
             />
           </View>
           <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.detailLabel}>PHONE NUMBER</Text>
+            <Text style={styles.detailLabel}>UPI ID (OPTIONAL)</Text>
             <TextInput
               style={styles.detailInput}
               value={upiId}
               onChangeText={(t) => { setUpiId(t); setSaved(false); }}
-              placeholder="+1 (555) 0000 0000"
+              placeholder="your.name@upi"
               placeholderTextColor="#94a3b8"
               autoCapitalize="none"
               keyboardType="email-address"
@@ -206,8 +222,30 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── APPEARANCE ── */}
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionCardTitle, { color: colors.text }]}>Appearance</Text>
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomColor: colors.border, borderBottomWidth: 0 }]}
+            onPress={() => setThemeMenuVisible(true)}
+            disabled={settingTheme}
+          >
+            <View style={[styles.settingIconWrap, { backgroundColor: PURPLE_LIGHT }]}>
+              <Text style={{ fontSize: 18 }}>🌙</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingTitle, { color: colors.text }]}>Dark Mode</Text>
+              <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+                {theme === 'system' ? 'System' : theme === 'dark' ? 'Always On' : 'Always Off'}
+              </Text>
+            </View>
+            <Text style={{ color: colors.textSecondary, fontSize: 18 }}>›</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── LOG OUT ── */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: PURPLE }]} onPress={handleLogout} activeOpacity={0.85}>
           <Text style={styles.logoutBtnText}>Log Out of All Devices</Text>
         </TouchableOpacity>
 
@@ -221,7 +259,7 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* ── BOTTOM NAV ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: false, route: "/" },
           { label: "EXPENSES", emoji: "🧾", active: false, route: "/expenses" },
@@ -236,7 +274,7 @@ export default function ProfileScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 18, marginBottom: 1 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveBar} />}
@@ -252,7 +290,7 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 12, backgroundColor: BG,
+    paddingHorizontal: 16, paddingBottom: 12,
   },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18,

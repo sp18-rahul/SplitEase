@@ -5,8 +5,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { users, groups } from "@/api/client";
+import { users, groups, emailApi } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -33,6 +34,7 @@ interface FoundUser { id: number; name: string; email: string; }
 export default function NewGroupScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
 
@@ -46,13 +48,24 @@ export default function NewGroupScreen() {
   const [members, setMembers] = useState<FoundUser[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Invite new user states
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+
   const searchUser = async () => {
     if (!emailSearch.trim()) return;
-    setSearching(true); setSearchError(""); setFoundUser(null);
+    setSearching(true);
+    setSearchError("");
+    setFoundUser(null);
     try {
+      console.log("Searching for user:", emailSearch);
       const res = await users.findByEmail(emailSearch.trim().toLowerCase());
       const list: FoundUser[] = res.data;
-      if (list.length === 0) {
+
+      if (!list || list.length === 0) {
         setSearchError("No user found with that email.");
       } else {
         const found = list[0];
@@ -64,8 +77,13 @@ export default function NewGroupScreen() {
           setFoundUser(found);
         }
       }
-    } catch { setSearchError("Search failed. Try again."); }
-    finally { setSearching(false); }
+    } catch (error: any) {
+      console.error("Search error:", error);
+      const errorMsg = error.response?.data?.error || error.message || "Search failed. Try again.";
+      setSearchError(errorMsg);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const addMember = () => {
@@ -76,15 +94,104 @@ export default function NewGroupScreen() {
 
   const removeMember = (id: number) => setMembers((prev) => prev.filter((m) => m.id !== id));
 
+  const generateTempPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let pwd = "";
+    for (let i = 0; i < 8; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pwd;
+  };
+
+  const inviteNewUser = async () => {
+    if (!inviteName.trim() || !inviteEmail.trim()) {
+      setInviteError("Name and email are required");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+      setInviteError("Invalid email format");
+      return;
+    }
+
+    // Check if email already exists
+    const emailExists = members.some((m) => m.email.toLowerCase() === inviteEmail.toLowerCase());
+    if (emailExists) {
+      setInviteError("This user is already added");
+      return;
+    }
+
+    setInviting(true);
+    setInviteError("");
+    try {
+      // Generate temporary password
+      const tempPassword = generateTempPassword();
+
+      // Create user
+      console.log("Creating new user:", inviteName, inviteEmail);
+      const res = await users.create({ name: inviteName.trim(), email: inviteEmail.trim() });
+      const newUser = { id: res.data.id, name: inviteName, email: inviteEmail };
+
+      console.log("User created, sending welcome email");
+      // Send welcome email
+      try {
+        await emailApi.sendWelcome(
+          inviteEmail.trim(),
+          inviteName.trim(),
+          tempPassword,
+          groupName || "a group",
+          user?.name || "A friend"
+        );
+      } catch (emailError: any) {
+        console.error("Email sending failed (non-critical):", emailError);
+        // Don't fail the whole operation if email fails
+      }
+
+      setMembers((prev) => [...prev, newUser]);
+      setInviteName("");
+      setInviteEmail("");
+      setShowInviteForm(false);
+      Alert.alert("Success", `${inviteName} invited! Check their email for login credentials.`);
+    } catch (error: any) {
+      console.error("Invite error:", error);
+      const errorMsg = error.response?.data?.error || error.message || "Failed to invite user";
+      setInviteError(errorMsg);
+    } finally {
+      setInviting(false);
+    }
+  };
+
   const createGroup = async () => {
     if (!groupName.trim()) { Alert.alert("Error", "Enter a group name"); return; }
+    if (members.length === 0) { Alert.alert("Error", "Please add at least one member"); return; }
+
     setLoading(true);
     try {
       const memberIds = members.map((m) => m.id);
-      const res = await groups.create({ name: groupName.trim(), memberIds, currency, emoji });
-      router.replace(`/${res.data.id}`);
-    } catch { Alert.alert("Error", "Failed to create group. Try again."); }
-    finally { setLoading(false); }
+      console.log("Creating group with:", { name: groupName, memberIds, currency, emoji });
+
+      const res = await groups.create({
+        name: groupName.trim(),
+        memberIds,
+        currency,
+        emoji
+      });
+
+      console.log("Group created:", res.data);
+
+      if (res.data && res.data.id) {
+        router.replace(`/${res.data.id}`);
+      } else {
+        Alert.alert("Error", "Invalid response from server");
+      }
+    } catch (error: any) {
+      console.error("Create group error:", error);
+      const errorMsg = error.response?.data?.error ||
+                       error.message ||
+                       "Failed to create group. Please try again.";
+      Alert.alert("Error", errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const hPad = r.hPad + r.s(16);
@@ -93,13 +200,13 @@ export default function NewGroupScreen() {
   const emojiSize = r.s(48);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
-        style={styles.root}
+        style={[styles.root, { backgroundColor: colors.background }]}
         contentContainerStyle={{ paddingBottom: insets.bottom + r.s(120), paddingHorizontal: hPad, paddingTop: r.s(16) }}
       >
         {/* Emoji Picker */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12) }]}>
+        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
           <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(14) }]}>Group Emoji</Text>
           <View style={[styles.emojiGrid, { gap: r.s(8) }]}>
             {GROUP_EMOJIS.map((e) => (
@@ -149,18 +256,18 @@ export default function NewGroupScreen() {
             </View>
           ) : (
             <>
-              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10) }]}>Group Name</Text>
-              <TextInput style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(18) }]}
+              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10), color: colors.textSecondary }]}>Group Name</Text>
+              <TextInput style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(18), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
                 placeholder="e.g., Goa Trip, Flat mates..." placeholderTextColor="#94a3b8"
                 value={groupName} onChangeText={setGroupName} />
-              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10) }]}>Currency</Text>
+              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10), color: colors.textSecondary }]}>Currency</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: r.s(8), paddingBottom: r.s(2) }}>
                 {CURRENCIES.map((c) => (
                   <TouchableOpacity key={c.code}
-                    style={[styles.currPill, { gap: r.s(4), paddingHorizontal: r.s(14), paddingVertical: r.s(10), borderRadius: r.s(20) }, currency === c.code && styles.currPillActive]}
+                    style={[styles.currPill, { gap: r.s(4), paddingHorizontal: r.s(14), paddingVertical: r.s(10), borderRadius: r.s(20), backgroundColor: colors.surface, borderColor: colors.border }, currency === c.code && styles.currPillActive]}
                     onPress={() => setCurrency(c.code)}>
-                    <Text style={[styles.currSymbol, { fontSize: r.fs(15) }]}>{c.symbol}</Text>
-                    <Text style={[styles.currCode, { fontSize: r.fs(13) }, currency === c.code && styles.currCodeActive]}>{c.code}</Text>
+                    <Text style={[styles.currSymbol, { fontSize: r.fs(15), color: colors.text }]}>{c.symbol}</Text>
+                    <Text style={[styles.currCode, { fontSize: r.fs(13), color: colors.textSecondary }, currency === c.code && styles.currCodeActive]}>{c.code}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -169,11 +276,11 @@ export default function NewGroupScreen() {
         </View>
 
         {/* Add Members */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12) }]}>
-          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12) }]}>Add Members by Email</Text>
+        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
+          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>Add Members by Email</Text>
           <View style={[styles.searchRow, { gap: r.s(10) }]}>
             <TextInput
-              style={[styles.input, { flex: 1, fontSize: r.fs(15), padding: r.s(14) }]}
+              style={[styles.input, { flex: 1, fontSize: r.fs(15), padding: r.s(14), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
               placeholder="friend@example.com" placeholderTextColor="#94a3b8"
               keyboardType="email-address" autoCapitalize="none"
               value={emailSearch}
@@ -203,30 +310,72 @@ export default function NewGroupScreen() {
           )}
         </View>
 
+        {/* Invite New User */}
+        {!showInviteForm ? (
+          <TouchableOpacity
+            style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: PURPLE_LIGHT }]}
+            onPress={() => setShowInviteForm(true)}>
+            <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(8), color: PURPLE }]}>+ Invite New User</Text>
+            <Text style={[{ fontSize: r.fs(13), color: PURPLE, fontWeight: "600" }]}>Create account and add to group</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
+            <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>Invite New User</Text>
+            {!!inviteError && <Text style={[{ fontSize: r.fs(13), color: "#e11d48", marginBottom: r.s(10), fontWeight: "600" }]}>{inviteError}</Text>}
+
+            <TextInput
+              style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(10), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
+              placeholder="Full name" placeholderTextColor="#94a3b8"
+              value={inviteName}
+              onChangeText={setInviteName}
+            />
+            <TextInput
+              style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(12), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
+              placeholder="email@example.com" placeholderTextColor="#94a3b8"
+              keyboardType="email-address" autoCapitalize="none"
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+            />
+
+            <View style={{ flexDirection: "row", gap: r.s(10) }}>
+              <TouchableOpacity
+                style={[styles.searchBtn, { flex: 1, paddingHorizontal: r.s(16), borderRadius: r.s(12) }]}
+                onPress={inviteNewUser} disabled={inviting}>
+                {inviting ? <ActivityIndicator color="#fff" size="small" /> : <Text style={[styles.searchBtnText, { fontSize: r.fs(14) }]}>Send Invite</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.searchBtn, { paddingHorizontal: r.s(16), borderRadius: r.s(12), backgroundColor: "#e2e8f0" }]}
+                onPress={() => { setShowInviteForm(false); setInviteError(""); setInviteName(""); setInviteEmail(""); }}>
+                <Text style={[styles.searchBtnText, { fontSize: r.fs(14), color: "#64748b" }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Members List */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12) }]}>
-          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12) }]}>
+        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
+          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>
             Members ({members.length + 1})
           </Text>
-          <View style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8) }]}>
+          <View style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={[styles.memberAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(10), backgroundColor: PURPLE_LIGHT }]}>
               <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: PURPLE }}>
                 {user?.name?.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.memberName, { fontSize: r.fs(14) }]}>{user?.name} (you)</Text>
-              <Text style={[styles.memberEmail, { fontSize: r.fs(12) }]}>{user?.email}</Text>
+              <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{user?.name} (you)</Text>
+              <Text style={[styles.memberEmail, { fontSize: r.fs(12), color: colors.textSecondary }]}>{user?.email}</Text>
             </View>
           </View>
           {members.map((m) => (
-            <View key={m.id} style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8) }]}>
-              <View style={[styles.memberAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(10) }]}>
-                <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: "#475569" }}>{m.name.charAt(0).toUpperCase()}</Text>
+            <View key={m.id} style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.memberAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(10), backgroundColor: isDark ? "#334155" : "#f1f5f9" }]}>
+                <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: isDark ? "#e2e8f0" : "#475569" }}>{m.name.charAt(0).toUpperCase()}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.memberName, { fontSize: r.fs(14) }]}>{m.name}</Text>
-                <Text style={[styles.memberEmail, { fontSize: r.fs(12) }]}>{m.email}</Text>
+                <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{m.name}</Text>
+                <Text style={[styles.memberEmail, { fontSize: r.fs(12), color: colors.textSecondary }]}>{m.email}</Text>
               </View>
               <TouchableOpacity onPress={() => removeMember(m.id)}
                 style={[styles.removeBtn, { width: r.s(28), height: r.s(28), borderRadius: r.s(14) }]}>
@@ -238,7 +387,7 @@ export default function NewGroupScreen() {
       </ScrollView>
 
 
-      <View style={[styles.bottomBar, { paddingHorizontal: hPad, paddingBottom: insets.bottom + r.s(16) }]}>
+      <View style={[styles.bottomBar, { paddingHorizontal: hPad, paddingBottom: insets.bottom + r.s(16), backgroundColor: colors.background, borderColor: colors.border }]}>
         <TouchableOpacity
           style={[styles.btn, { padding: r.s(16), borderRadius: r.s(14) }, (!groupName.trim() || loading) && styles.btnDisabled]}
           onPress={createGroup} disabled={!groupName.trim() || loading} activeOpacity={0.85}>

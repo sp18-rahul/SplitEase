@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -22,6 +23,7 @@ const BG = "#F8F5FF";
 export default function LoginScreen() {
   const { login, isLoading, user } = useAuth();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
 
   // Guard: redirect to home if already authenticated
   if (user) return <Redirect href="/" />;
@@ -46,7 +48,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       {/* Decorative background blobs */}
@@ -159,6 +161,18 @@ export default function LoginScreen() {
           <Text style={[styles.hintDetail, { fontSize: fs(12), marginTop: s(8) }]}>
             demo@example.com  ·  password123
           </Text>
+
+          {/* Signup Link */}
+          <View style={[styles.signupRow, { marginTop: s(20) }]}>
+            <Text style={[styles.signupText, { fontSize: fs(13) }]}>
+              Don't have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/signup")}>
+              <Text style={[styles.signupLink, { fontSize: fs(13) }]}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -296,5 +310,17 @@ const styles = StyleSheet.create({
   forgotLink: {
     color: PURPLE,
     fontWeight: "600",
+  },
+  signupRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  signupText: {
+    color: "#64748b",
+  },
+  signupLink: {
+    color: PURPLE,
+    fontWeight: "700",
   },
 });

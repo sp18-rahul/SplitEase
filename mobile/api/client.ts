@@ -7,6 +7,13 @@ export const api = axios.create({
   timeout: 15000,
 });
 
+let onLogoutCallback: (() => void) | null = null;
+
+// Set callback to trigger logout on 401
+export function setOnUnauthorized(callback: () => void) {
+  onLogoutCallback = callback;
+}
+
 // Set mobile user id header for all requests (called after login)
 export function setMobileUserId(userId: number | null) {
   if (userId) {
@@ -16,15 +23,63 @@ export function setMobileUserId(userId: number | null) {
   }
 }
 
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const message = error.message || "Network error";
+
+    // Handle 401/403 - user is unauthorized (don't log as error, it's expected)
+    if (status === 401 || status === 403) {
+      if (onLogoutCallback) {
+        onLogoutCallback();
+      }
+    } else {
+      // Log other errors for debugging
+      console.error("API Error:", {
+        status,
+        data: error.response?.data,
+        message,
+        url: error.config?.url,
+      });
+    }
+
+    // Handle network errors
+    if (error.code === "ECONNABORTED") {
+      return Promise.reject({
+        ...error,
+        message: "Request timeout - check your connection"
+      });
+    }
+
+    if (!error.response && error.message === "Network Error") {
+      return Promise.reject({
+        ...error,
+        message: "Network connection failed - check your internet"
+      });
+    }
+
+    // Don't hide the error, let the calling code handle it
+    return Promise.reject(error);
+  }
+);
+
 // Users
 export const users = {
   getAll: () => api.get("/users"),
   findByEmail: (email: string) =>
     api.get(`/users?email=${encodeURIComponent(email)}`),
+  search: (query: string) =>
+    api.get(`/users/search?q=${encodeURIComponent(query)}`),
   create: (data: { name: string; email: string }) => api.post("/users", data),
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data: { name?: string; upiId?: string }) =>
     api.patch("/users/profile", data),
+  updateTheme: (theme: string) =>
+    api.patch("/users/theme", { theme }),
+  sendFriendRequest: (userId: number) =>
+    api.post(`/users/${userId}/friend-request`, {}),
 };
 
 // Groups
@@ -37,8 +92,14 @@ export const groups = {
     currency?: string;
     emoji?: string;
   }) => api.post("/groups", data),
+  update: (groupId: number, data: { name?: string; emoji?: string }) =>
+    api.patch(`/groups/${groupId}`, data),
+  delete: (groupId: number) =>
+    api.delete(`/groups/${groupId}`),
   addMember: (groupId: number, userId: number) =>
     api.post(`/groups/${groupId}/members`, { userId }),
+  removeMember: (groupId: number, userId: number) =>
+    api.delete(`/groups/${groupId}/members/${userId}`),
 };
 
 // Expenses
@@ -53,8 +114,28 @@ export const expenses = {
       splits: { userId: number; amount: number }[];
       category?: string;
       notes?: string;
+      receiptUri?: string;
     }
-  ) => api.post(`/groups/${groupId}/expenses`, data),
+  ) => {
+    if (data.receiptUri) {
+      const formData = new FormData();
+      formData.append("description", data.description);
+      formData.append("amount", String(data.amount));
+      formData.append("paidById", String(data.paidById));
+      formData.append("splits", JSON.stringify(data.splits));
+      if (data.category) formData.append("category", data.category);
+      if (data.notes) formData.append("notes", data.notes);
+      formData.append("receipt", {
+        uri: data.receiptUri,
+        type: "image/jpeg",
+        name: "receipt.jpg",
+      } as any);
+      return api.post(`/groups/${groupId}/expenses`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    return api.post(`/groups/${groupId}/expenses`, data);
+  },
   update: (
     groupId: number,
     expenseId: number,
@@ -65,8 +146,28 @@ export const expenses = {
       splits: { userId: number; amount: number }[];
       category?: string;
       notes?: string;
+      receiptUri?: string;
     }
-  ) => api.patch(`/groups/${groupId}/expenses/${expenseId}`, data),
+  ) => {
+    if (data.receiptUri) {
+      const formData = new FormData();
+      formData.append("description", data.description);
+      formData.append("amount", String(data.amount));
+      formData.append("paidById", String(data.paidById));
+      formData.append("splits", JSON.stringify(data.splits));
+      if (data.category) formData.append("category", data.category);
+      if (data.notes) formData.append("notes", data.notes);
+      formData.append("receipt", {
+        uri: data.receiptUri,
+        type: "image/jpeg",
+        name: "receipt.jpg",
+      } as any);
+      return api.patch(`/groups/${groupId}/expenses/${expenseId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    }
+    return api.patch(`/groups/${groupId}/expenses/${expenseId}`, data);
+  },
   delete: (groupId: number, expenseId: number) =>
     api.delete(`/groups/${groupId}/expenses/${expenseId}`),
 };
@@ -106,4 +207,10 @@ export const exportApi = {
 export const authApi = {
   forgotPassword: (email: string) =>
     api.post("/auth/forgot-password", { email }),
+};
+
+// Email
+export const emailApi = {
+  sendWelcome: (to: string, name: string, password: string, groupName?: string, inviterName?: string) =>
+    api.post("/email/send-welcome", { to, name, password, groupName, inviterName }),
 };

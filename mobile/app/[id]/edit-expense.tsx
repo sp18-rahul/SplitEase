@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { groups, expenses } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -37,6 +38,7 @@ export default function EditExpenseScreen() {
   const { id, expenseId } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const groupId = parseInt(id as string);

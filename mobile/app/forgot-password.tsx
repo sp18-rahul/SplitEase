@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 import { authApi } from "@/api/client";
 
@@ -21,6 +22,7 @@ const BG = "#F8F5FF";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const { s, fs, hPad, contentWidth } = useResponsive();
   const insets = useSafeAreaInsets();
 

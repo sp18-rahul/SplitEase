@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, ScrollView,
+  ActivityIndicator, RefreshControl, ScrollView, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { groups } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -68,8 +69,8 @@ function AvatarStack({ members, size = 26 }: { members: Array<{ user: { name: st
 
 // ── GROUP CARD ────────────────────────────────────────────────────────────────
 function GroupCard({
-  item, onPress, currentUserId,
-}: { item: Group; onPress: () => void; currentUserId: number }) {
+  item, onPress, currentUserId, colors, isDark,
+}: { item: Group; onPress: () => void; currentUserId: number; colors: any; isDark: boolean }) {
   const sym = CURRENCY_SYMBOLS[item.currency || "INR"] || "₹";
   const expenses = item.expenses || [];
   let totalPaid = expenses.reduce((s, e) => s + (e.paidById === currentUserId ? e.amount : 0), 0);
@@ -87,7 +88,7 @@ function GroupCard({
   const isOwes = balance < 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={[styles.card, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : "#F3F0FF" }]} onPress={onPress} activeOpacity={0.85}>
       {/* Icon */}
       <View style={styles.cardIcon}>
         <Text style={{ fontSize: item.emoji ? 22 : 18, fontWeight: "700", color: PURPLE }}>
@@ -97,10 +98,10 @@ function GroupCard({
 
       {/* Info */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
           <AvatarStack members={item.members} size={22} />
-          <Text style={styles.cardSub}>
+          <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
             {item.members.length} member{item.members.length !== 1 ? "s" : ""}
           </Text>
         </View>
@@ -127,6 +128,7 @@ export default function HomeScreen() {
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const currentUserId = user.userId;
+  const { colors, isDark } = useTheme();
 
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +139,11 @@ export default function HomeScreen() {
     try {
       const res = await groups.getAll();
       setGroupsList(Array.isArray(res.data) ? res.data : []);
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      // Still show empty list, don't crash
+      setGroupsList([]);
+    }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -170,16 +176,23 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={PURPLE} />
       </View>
     );
   }
 
+  const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign Out", style: "destructive", onPress: logout },
+    ]);
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <TouchableOpacity
             onPress={() => router.push("/profile")}
@@ -193,10 +206,10 @@ export default function HomeScreen() {
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
-            onPress={() => router.push("/profile")}
-            style={styles.headerIconBtn}
+            onPress={handleLogout}
+            style={[styles.headerIconBtn, { backgroundColor: colors.surface }]}
           >
-            <Text style={{ fontSize: 16 }}>⚙️</Text>
+            <Text style={{ fontSize: 16 }}>🚪</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -210,9 +223,9 @@ export default function HomeScreen() {
       >
         {/* ── BALANCE CARD ── */}
         {groupsList.length > 0 && (
-          <View style={[styles.balanceCard, { margin: 16 }]}>
+          <View style={[styles.balanceCard, { margin: 16, backgroundColor: PURPLE_LIGHT }]}>
             <Text style={styles.balanceLabel}>Total Balance</Text>
-            <Text style={styles.balanceAmount}>
+            <Text style={[styles.balanceAmount, { color: isDark ? PURPLE : "#1a0533" }]}>
               ₹{Math.abs(totalBalance).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
             </Text>
             <Text style={[styles.balanceSubtitle, { color: isPositive ? "#16a34a" : "#dc2626" }]}>
@@ -241,7 +254,7 @@ export default function HomeScreen() {
         {/* ── ACTIVE GROUPS ── */}
         <View style={{ paddingHorizontal: 16 }}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Active Groups</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Groups</Text>
             <TouchableOpacity onPress={() => router.push("/new-group")}>
               <Text style={styles.sectionLink}>VIEW ALL</Text>
             </TouchableOpacity>
@@ -250,8 +263,8 @@ export default function HomeScreen() {
           {groupsList.length === 0 ? (
             <View style={styles.empty}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🤝</Text>
-              <Text style={styles.emptyTitle}>No groups yet</Text>
-              <Text style={styles.emptySub}>Create a group to start splitting expenses</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No groups yet</Text>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Create a group to start splitting expenses</Text>
               <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push("/new-group")}>
                 <Text style={styles.emptyBtnText}>+ Create Group</Text>
               </TouchableOpacity>
@@ -263,24 +276,38 @@ export default function HomeScreen() {
                 item={item}
                 currentUserId={currentUserId}
                 onPress={() => router.push(`/${item.id}`)}
+                colors={colors}
+                isDark={isDark}
               />
             ))
           )}
 
           {/* New group dashed CTA */}
           {groupsList.length > 0 && (
-            <TouchableOpacity style={styles.newGroupBtn} onPress={() => router.push("/new-group")}>
+            <TouchableOpacity style={[styles.newGroupBtn, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : "#DDD6FE" }]} onPress={() => router.push("/new-group")}>
               <Text style={{ color: PURPLE, fontWeight: "700", fontSize: 14 }}>+ Create New Group</Text>
             </TouchableOpacity>
           )}
         </View>
       </ScrollView>
 
-      {/* ── FAB ── */}
+      {/* ── FAB ── Quick Add Expense ── */}
       {groupsList.length > 0 && (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 76 }]}
-          onPress={() => router.push("/new-group")}
+          onPress={() => {
+            if (groupsList.length === 1) {
+              router.push(`/${groupsList[0].id}/add-expense`);
+            } else {
+              Alert.alert("Select Group", "Which group do you want to add an expense to?", [
+                ...groupsList.map(g => ({
+                  text: g.name,
+                  onPress: () => router.push(`/${g.id}/add-expense`),
+                })),
+                { text: "Cancel", style: "cancel" },
+              ]);
+            }
+          }}
           activeOpacity={0.85}
         >
           <Text style={{ fontSize: 26, color: "white", fontWeight: "300", lineHeight: 30 }}>＋</Text>
@@ -288,7 +315,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── BOTTOM TAB BAR ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: isDark ? colors.border : "#F3F0FF" }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: true, onPress: undefined },
           { label: "EXPENSES", emoji: "🧾", active: false, onPress: () => router.push("/expenses") },
@@ -303,7 +330,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 18, marginBottom: 1 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveIndicator} />}
@@ -319,7 +346,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: "#F8F5FF",
   },
   headerAvatar: {
     width: 36, height: 36, borderRadius: 18,
@@ -328,7 +354,7 @@ const styles = StyleSheet.create({
   headerBrand: { fontSize: 20, fontWeight: "900", color: PURPLE, letterSpacing: -0.3 },
   headerIconBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: "white", alignItems: "center", justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
   },
@@ -366,24 +392,24 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     marginBottom: 14,
   },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: "#0f172a" },
+  sectionTitle: { fontSize: 17, fontWeight: "800" },
   sectionLink: { fontSize: 12, fontWeight: "700", color: PURPLE, letterSpacing: 0.5 },
 
   // Group Card
   card: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: "white", borderRadius: 16, padding: 14,
+    borderRadius: 16, padding: 14,
     marginBottom: 10,
     shadowColor: "#7C3AED", shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-    borderWidth: 1, borderColor: "#F3F0FF",
+    borderWidth: 1,
   },
   cardIcon: {
     width: 46, height: 46, borderRadius: 14, backgroundColor: PURPLE_LIGHT,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
-  cardName: { fontSize: 15, fontWeight: "700", color: "#0f172a" },
-  cardSub: { fontSize: 12, color: "#94a3b8", fontWeight: "500" },
+  cardName: { fontSize: 15, fontWeight: "700" },
+  cardSub: { fontSize: 12, fontWeight: "500" },
   cardBalance: { fontSize: 15, fontWeight: "800" },
   cardBalanceLbl: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.3, marginTop: 1 },
 
@@ -398,8 +424,8 @@ const styles = StyleSheet.create({
   empty: {
     alignItems: "center", paddingVertical: 48, paddingHorizontal: 32,
   },
-  emptyTitle: { fontSize: 20, fontWeight: "800", color: "#0f172a", marginBottom: 8 },
-  emptySub: { fontSize: 14, color: "#64748b", textAlign: "center", marginBottom: 24, lineHeight: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
+  emptySub: { fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 },
   emptyBtn: {
     backgroundColor: PURPLE, paddingHorizontal: 24, paddingVertical: 13,
     borderRadius: 14,
@@ -416,8 +442,8 @@ const styles = StyleSheet.create({
 
   // Bottom Tab Bar
   tabBar: {
-    flexDirection: "row", backgroundColor: "white",
-    borderTopWidth: 1, borderTopColor: "#F3F0FF",
+    flexDirection: "row",
+    borderTopWidth: 1,
     paddingTop: 10,
     shadowColor: PURPLE, shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 8,

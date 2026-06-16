@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, RefreshControl,
+  ScrollView, ActivityIndicator, RefreshControl, Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { personalExpenses as personalExpensesApi } from "@/api/client";
 
 const PURPLE = "#7C3AED";
@@ -66,11 +67,12 @@ function dateLabel(dateStr: string): string {
 
 export default function ExpensesScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
   const initial = user.name?.charAt(0).toUpperCase() || "?";
+  const { colors, isDark } = useTheme();
 
   const [expenses, setExpenses] = useState<PersonalExpense[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -82,6 +84,13 @@ export default function ExpensesScreen() {
   const [groupFilter, setGroupFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  const handleLogout = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Sign Out", style: "destructive", onPress: logout },
+    ]);
+  };
 
   // ── Fetch ──
   const fetchExpenses = useCallback(async (isRefresh = false) => {
@@ -149,17 +158,17 @@ export default function ExpensesScreen() {
   const activeFilters = (groupFilter !== null ? 1 : 0) + (categoryFilter !== null ? 1 : 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
           </View>
           <Text style={styles.headerBrand}>SplitEase</Text>
         </View>
-        <TouchableOpacity style={styles.headerIconBtn}>
-          <Text style={{ fontSize: 16 }}>⚙️</Text>
+        <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
+          <Text style={{ fontSize: 16 }}>🚪</Text>
         </TouchableOpacity>
       </View>
 

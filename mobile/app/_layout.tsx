@@ -1,30 +1,50 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
 import { useAuth, AuthProvider } from "@/context/auth";
+import { ThemeProvider, useTheme } from "@/context/theme";
+import { ErrorBoundary } from "@/context/error-boundary";
 import { setMobileUserId } from "@/api/client";
 
 const PURPLE = "#7C3AED";
 
 function RootLayoutNav() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
-    setMobileUserId(user ? user.userId : null);
+    try {
+      console.log("Setting mobile user ID:", user?.userId);
+      setMobileUserId(user ? user.userId : null);
+    } catch (error) {
+      console.error("Error setting mobile user ID:", error);
+    }
   }, [user]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={PURPLE} />
+      </View>
+    );
+  }
 
   return (
     <>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#F8F5FF" },
+          headerStyle: { backgroundColor: colors.background },
           headerTintColor: PURPLE,
-          headerTitleStyle: { fontWeight: "bold", color: "#0f172a" },
+          headerTitleStyle: { fontWeight: "bold", color: colors.text },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: "#F8F5FF" },
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="signup" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen
           name="index"
           options={{ headerShown: false }}
@@ -47,15 +67,19 @@ function RootLayoutNav() {
           options={{ title: "Edit Expense", presentation: "modal" }}
         />
       </Stack>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
     </>
   );
 }
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
+          <RootLayoutNav />
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -10,6 +10,7 @@ import {
   activityApi, exportApi,
 } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED"
@@ -68,6 +69,7 @@ export default function GroupDetail() {
   const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
   const groupId = parseInt(id as string);
@@ -101,7 +103,10 @@ export default function GroupDetail() {
       setGroup(gRes.data);
       setTxns(bRes.data.transactions || []);
       setApiBalances(bRes.data.balances || {});
-    } catch { /* ignore */ } finally {
+    } catch (error: any) {
+      console.error("Error fetching group data:", error);
+      showToast("Failed to load group data");
+    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -111,7 +116,10 @@ export default function GroupDetail() {
     try {
       const res = await activityApi.getByGroup(groupId);
       setActivityItems(res.data || []);
-    } catch { setActivityItems([]); }
+    } catch (error: any) {
+      console.error("Error fetching activity:", error);
+      setActivityItems([]);
+    }
   }, [groupId]);
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
@@ -122,7 +130,11 @@ export default function GroupDetail() {
     try {
       const res = await exportApi.getCSV(groupId);
       Alert.alert("Exported", "CSV export complete.\n\n" + String(res.data).slice(0, 300));
-    } catch { Alert.alert("Error", "Failed to export data"); }
+    } catch (error: any) {
+      console.error("Export error:", error);
+      const msg = error.message || "Failed to export data";
+      Alert.alert("Error", msg);
+    }
   };
 
   const handleSettle = async () => {
@@ -133,7 +145,11 @@ export default function GroupDetail() {
       setSettleModal(null);
       showToast("Settlement recorded! 🎉");
       fetchData();
-    } catch { Alert.alert("Error", "Failed to record settlement"); }
+    } catch (error: any) {
+      console.error("Settlement error:", error);
+      const msg = error.response?.data?.error || error.message || "Failed to record settlement";
+      Alert.alert("Error", msg);
+    }
     finally { setSettling(false); }
   };
 
@@ -148,7 +164,11 @@ export default function GroupDetail() {
             await settlements.delete(groupId, settlementId);
             showToast("Settlement removed");
             fetchData();
-          } catch { Alert.alert("Error", "Failed to remove settlement"); }
+          } catch (error: any) {
+            console.error("Delete settlement error:", error);
+            const msg = error.message || "Failed to remove settlement";
+            Alert.alert("Error", msg);
+          }
           finally { setDeletingSettlementId(null); }
         },
       },
@@ -159,8 +179,15 @@ export default function GroupDetail() {
     Alert.alert("Delete Expense", `Delete "${desc}"?`, [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: async () => {
-        try { await expensesApi.delete(groupId, expenseId); fetchData(); showToast("Expense deleted"); }
-        catch { Alert.alert("Error", "Failed to delete expense"); }
+        try {
+          await expensesApi.delete(groupId, expenseId);
+          fetchData();
+          showToast("Expense deleted");
+        } catch (error: any) {
+          console.error("Delete expense error:", error);
+          const msg = error.message || "Failed to delete expense";
+          Alert.alert("Error", msg);
+        }
       }},
     ]);
   };
@@ -172,8 +199,13 @@ export default function GroupDetail() {
         paidById: exp.paidBy.id, splits: exp.splits,
         category: exp.category || undefined, notes: exp.notes || undefined,
       });
-      fetchData(); showToast("Expense duplicated! 📋");
-    } catch { Alert.alert("Error", "Failed to duplicate expense"); }
+      fetchData();
+      showToast("Expense duplicated! 📋");
+    } catch (error: any) {
+      console.error("Duplicate expense error:", error);
+      const msg = error.response?.data?.error || error.message || "Failed to duplicate expense";
+      Alert.alert("Error", msg);
+    }
   };
 
   const UPI_APPS = [
@@ -480,10 +512,10 @@ export default function GroupDetail() {
   );
 
   return (
-    <View style={[styles.root, { backgroundColor: BG }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {!!toast && (
-        <View style={[styles.toast, { top: r.s(16), left: r.s(20), right: r.s(20), borderRadius: r.s(12), padding: r.s(14) }]}>
-          <Text style={[styles.toastText, { fontSize: r.fs(14) }]}>{toast}</Text>
+        <View style={[styles.toast, { top: r.s(16), left: r.s(20), right: r.s(20), borderRadius: r.s(12), padding: r.s(14), backgroundColor: colors.surface }]}>
+          <Text style={[styles.toastText, { fontSize: r.fs(14), color: colors.text }]}>{toast}</Text>
         </View>
       )}
 
@@ -495,9 +527,9 @@ export default function GroupDetail() {
         }
       >
         {/* ── CUSTOM HEADER ── */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: insets.top + 12, paddingBottom: 12, backgroundColor: BG }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: insets.top + 12, paddingBottom: 12, backgroundColor: colors.background }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "white", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}>
+            <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}>
               <Text style={{ fontSize: 18, color: PURPLE }}>←</Text>
             </TouchableOpacity>
             <Text style={{ fontSize: 20, fontWeight: "900", color: PURPLE, letterSpacing: -0.3 }}>SplitEase</Text>
