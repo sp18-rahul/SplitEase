@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/context/auth";
 import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
+import { InviteModal } from "@/components/invite-modal";
 
 const PURPLE = "#7C3AED"
 const PURPLE_LIGHT = "#EDE9FE"
@@ -87,6 +88,8 @@ export default function GroupDetail() {
   const [activeTab, setActiveTab] = useState<TabType>("balances");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [remindingSettlementId, setRemindingSettlementId] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -206,6 +209,29 @@ export default function GroupDetail() {
       const msg = error.response?.data?.error || error.message || "Failed to duplicate expense";
       Alert.alert("Error", msg);
     }
+  };
+
+  const handleDeleteGroup = () => {
+    Alert.alert("Delete Group", `Are you sure you want to delete "${group?.name}"? This cannot be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete", style: "destructive",
+        onPress: async () => {
+          try {
+            setLoading(true);
+            await groups.delete(groupId);
+            showToast("Group deleted");
+            router.back();
+          } catch (error: any) {
+            console.error("Delete group error:", error);
+            const msg = error.response?.data?.error || error.message || "Failed to delete group";
+            Alert.alert("Error", msg);
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   const UPI_APPS = [
@@ -337,9 +363,24 @@ export default function GroupDetail() {
                       <Text style={[styles.payBtnText, { fontSize: r.fs(14) }]}>✓ Mark as Settled</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.payBtn, { paddingVertical: r.s(10), borderRadius: r.s(10), backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" }]}
-                      onPress={() => showToast(`Reminder sent to ${getMemberName(t.fromUserId)}! 🔔`)}>
-                      <Text style={[styles.payBtnText, { fontSize: r.fs(14), color: GREEN }]}>🔔 Remind</Text>
+                      style={[styles.payBtn, { paddingVertical: r.s(10), borderRadius: r.s(10), backgroundColor: "#f0fdf4", borderColor: "#bbf7d0", opacity: remindingSettlementId ? 0.6 : 1 }]}
+                      onPress={async () => {
+                        try {
+                          setRemindingSettlementId(`${t.fromUserId}-${t.toUserId}`);
+                          await settlements.sendReminder(groupId, { fromUserId: t.fromUserId, toUserId: t.toUserId, amount: t.amount });
+                          showToast(`Reminder sent to ${getMemberName(t.fromUserId)}! 🔔`);
+                        } catch (error) {
+                          showToast("Failed to send reminder");
+                        } finally {
+                          setRemindingSettlementId(null);
+                        }
+                      }}
+                      disabled={remindingSettlementId === `${t.fromUserId}-${t.toUserId}`}>
+                      {remindingSettlementId === `${t.fromUserId}-${t.toUserId}` ? (
+                        <ActivityIndicator color={GREEN} size="small" />
+                      ) : (
+                        <Text style={[styles.payBtnText, { fontSize: r.fs(14), color: GREEN }]}>🔔 Remind</Text>
+                      )}
                     </TouchableOpacity>
                   </>
                 )}
@@ -591,6 +632,18 @@ export default function GroupDetail() {
             >
               <Text style={{ color: PURPLE, fontWeight: "700", fontSize: 14 }}>+ Add Expense</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#fef3c7", borderRadius: 12, justifyContent: "center", alignItems: "center" }}
+              onPress={() => setShowInviteModal(true)}
+            >
+              <Text style={{ color: "#92400e", fontWeight: "700", fontSize: 14 }}>🔗</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#fee2e2", borderRadius: 12, justifyContent: "center", alignItems: "center" }}
+              onPress={handleDeleteGroup}
+            >
+              <Text style={{ color: RED, fontWeight: "700", fontSize: 14 }}>🗑️</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -732,6 +785,14 @@ export default function GroupDetail() {
           </View>
         </View>
       </Modal>
+
+      {/* Invite Modal */}
+      <InviteModal
+        visible={showInviteModal}
+        groupId={groupId}
+        groupName={group?.name || "Group"}
+        onClose={() => setShowInviteModal(false)}
+      />
     </View>
   );
 }

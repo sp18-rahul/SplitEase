@@ -100,6 +100,10 @@ export const groups = {
     api.post(`/groups/${groupId}/members`, { userId }),
   removeMember: (groupId: number, userId: number) =>
     api.delete(`/groups/${groupId}/members/${userId}`),
+  generateInvite: (groupId: number) =>
+    api.post(`/groups/${groupId}/invite`, {}),
+  revokeInvite: (groupId: number) =>
+    api.delete(`/groups/${groupId}/invite`),
 };
 
 // Expenses
@@ -185,6 +189,10 @@ export const settlements = {
   ) => api.post(`/groups/${groupId}/settle`, data),
   delete: (groupId: number, settlementId: number) =>
     api.delete(`/groups/${groupId}/settle/${settlementId}`),
+  sendReminder: (
+    groupId: number,
+    data: { fromUserId: number; toUserId: number; amount: number }
+  ) => api.post(`/groups/${groupId}/remind`, data),
 };
 
 // Activity

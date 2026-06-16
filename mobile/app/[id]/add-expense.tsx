@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Switch,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Switch, Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { groups, expenses } from "@/api/client";
 import { useAuth } from "@/context/auth";
 import { useTheme } from "@/context/theme";
@@ -70,6 +71,7 @@ export default function AddExpenseScreen() {
   const [exactAmounts, setExactAmounts] = useState<Record<number, string>>({});
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [showPaidByList, setShowPaidByList] = useState(false);
+  const [receiptUri, setReceiptUri] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -136,6 +138,22 @@ export default function AddExpenseScreen() {
 
   const owedToYou = paidById === user?.userId ? Math.max(0, numAmt - yourShare) : 0;
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setReceiptUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const handleSubmit = async () => {
     const amt = parseFloat(amount);
     if (!description.trim()) { Alert.alert("Error", "Enter a description"); return; }
@@ -145,7 +163,7 @@ export default function AddExpenseScreen() {
     try {
       await expenses.create(groupId, {
         description: description.trim(), amount: amt, paidById,
-        splits: buildSplits(), category,
+        splits: buildSplits(), category, receiptUri: receiptUri || undefined,
       });
       router.back();
     } catch (error: any) {
@@ -251,6 +269,32 @@ export default function AddExpenseScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+
+        {/* ── RECEIPT (Optional) ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>RECEIPT (Optional)</Text>
+          <TouchableOpacity style={styles.receiptBtn} onPress={pickImage}>
+            <Text style={{ fontSize: 18, marginRight: 8 }}>📷</Text>
+            <Text style={{ color: PURPLE, fontWeight: "600", fontSize: 14 }}>
+              {receiptUri ? "Change Receipt" : "Add Receipt"}
+            </Text>
+          </TouchableOpacity>
+          {receiptUri && (
+            <View style={styles.receiptPreview}>
+              <Image
+                source={{ uri: receiptUri }}
+                style={{ width: "100%", height: 200, borderRadius: 12 }}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                style={styles.removeReceiptBtn}
+                onPress={() => setReceiptUri(null)}
+              >
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* ── PAID BY ── */}
@@ -530,6 +574,19 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#C4B5FD", borderRadius: 8,
     padding: 5, fontSize: 12, textAlign: "center", color: "#0f172a",
     backgroundColor: "#fff", width: 54, marginTop: 4,
+  },
+
+  // Receipt
+  receiptBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    backgroundColor: "#fff", borderRadius: 14, paddingVertical: 14,
+    borderWidth: 2, borderStyle: "dashed", borderColor: PURPLE_LIGHT,
+  },
+  receiptPreview: {
+    marginTop: 12, backgroundColor: "#fff", borderRadius: 14, overflow: "hidden",
+  },
+  removeReceiptBtn: {
+    backgroundColor: "#dc2626", paddingVertical: 10, alignItems: "center",
   },
 
   // Bottom bar
