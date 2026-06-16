@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Alert, TextInput } from "react-native";
-import * as Sharing from "expo-sharing";
+import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Alert, TextInput, Clipboard, Share } from "react-native";
 import { groups } from "@/api/client";
 
 const PURPLE = "#7C3AED";
@@ -38,9 +37,9 @@ export function InviteModal({ visible, groupId, groupName, onClose, onSuccess }:
   const handleShare = async () => {
     if (!inviteLink) return;
     try {
-      await Sharing.shareAsync(inviteLink, {
-        mimeType: "text/plain",
-        dialogTitle: `Invite to ${groupName}`,
+      await Share.share({
+        message: `Join ${groupName} on SplitEase: ${inviteLink}`,
+        title: `Invite to ${groupName}`,
       });
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to share");
@@ -50,12 +49,8 @@ export function InviteModal({ visible, groupId, groupName, onClose, onSuccess }:
   const handleCopyLink = async () => {
     if (!inviteLink) return;
     try {
-      // Copy to clipboard
-      const { Clipboard } = require("react-native");
-      if (Clipboard) {
-        Clipboard.setStringAsync(inviteLink);
-        Alert.alert("Copied", "Invite link copied to clipboard!");
-      }
+      await Clipboard.setString(inviteLink);
+      Alert.alert("Copied", "Invite link copied to clipboard!");
     } catch (error) {
       Alert.alert("Error", "Failed to copy link");
     }
