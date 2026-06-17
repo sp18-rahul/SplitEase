@@ -27,15 +27,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
         const res = await fetch(`${API_URL}/api/users/profile`, {
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
+
         if (res.ok) {
           const data = await res.json();
           setUser({ userId: data.id, name: data.name, email: data.email });
         }
-      } catch {
-        // Silent fail - no active session
+      } catch (error) {
+        // Silent fail - no active session or timeout
+        console.log("Session restore timeout or error - continuing as guest");
       } finally {
         setIsLoading(false);
       }
