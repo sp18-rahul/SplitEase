@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { groups } from "@/api/client";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 
 const PURPLE = "#7C3AED";
 const PURPLE_LIGHT = "#EDE9FE";
@@ -31,7 +32,7 @@ interface Group {
 type FilterTab = "all" | "active" | "settled";
 
 // ── Avatar Stack ──────────────────────────────────────────────────────────────
-function AvatarStack({ members }: { members: Array<{ user: { name: string } }> }) {
+function AvatarStack({ members, purpleLight }: { members: Array<{ user: { name: string } }>; purpleLight: string }) {
   const shown = members.slice(0, 3);
   const extra = members.length - 3;
   return (
@@ -56,7 +57,7 @@ function AvatarStack({ members }: { members: Array<{ user: { name: string } }> }
       {extra > 0 && (
         <View style={{
           width: 28, height: 28, borderRadius: 14,
-          backgroundColor: PURPLE_LIGHT, borderWidth: 2, borderColor: "white",
+          backgroundColor: purpleLight, borderWidth: 2, borderColor: "white",
           alignItems: "center", justifyContent: "center", marginLeft: -8,
         }}>
           <Text style={{ fontSize: 10, fontWeight: "700", color: PURPLE }}>+{extra}</Text>
@@ -69,6 +70,7 @@ function AvatarStack({ members }: { members: Array<{ user: { name: string } }> }
 export default function HomeScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
@@ -127,16 +129,16 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={PURPLE} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <TouchableOpacity onPress={() => router.push("/profile")} style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "white" }}>
@@ -160,8 +162,8 @@ export default function HomeScreen() {
         {/* ── PAGE HEADER ── */}
         <View style={styles.pageHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>My Groups</Text>
-            <Text style={styles.pageSubtitle}>Track and split expenses with your favorite circles.</Text>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>My Groups</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Track and split expenses with your favorite circles.</Text>
           </View>
           <TouchableOpacity style={styles.createBtn} onPress={() => router.push("/new-group")}>
             <Text style={styles.createBtnText}>＋ Create</Text>
@@ -174,10 +176,10 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={f}
               onPress={() => setActiveFilter(f)}
-              style={[styles.filterBtn, activeFilter === f && styles.filterBtnActive]}
+              style={[styles.filterBtn, activeFilter === f && styles.filterBtnActive, !( activeFilter === f) && { backgroundColor: colors.surface, borderColor: colors.border }]}
               activeOpacity={0.8}
             >
-              <Text style={[styles.filterBtnText, activeFilter === f && styles.filterBtnTextActive]}>
+              <Text style={[styles.filterBtnText, { color: colors.text }, activeFilter === f && styles.filterBtnTextActive]}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -186,14 +188,14 @@ export default function HomeScreen() {
 
         <View style={{ paddingHorizontal: 16 }}>
           {filteredGroups.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconCircle}>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.border }]}>
                 <Text style={{ fontSize: 28 }}>👥</Text>
               </View>
-              <Text style={styles.emptyTitle}>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
                 {groupsList.length === 0 ? "No groups yet" : "No groups match filter"}
               </Text>
-              <Text style={styles.emptySubtitle}>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 {groupsList.length === 0
                   ? "Create a group to start splitting expenses."
                   : "Try a different filter."}
@@ -219,7 +221,7 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={group.id}
-                    style={styles.groupCard}
+                    style={[styles.groupCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     onPress={() => router.push(`/${group.id}`)}
                     activeOpacity={0.85}
                   >
@@ -227,7 +229,7 @@ export default function HomeScreen() {
                     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
                       <View style={[
                         styles.groupIcon,
-                        { backgroundColor: isSettled ? "#F3F4F6" : "#F5F3FF", borderColor: isSettled ? "#E5E7EB" : PURPLE_LIGHT }
+                        { backgroundColor: isSettled ? colors.card : colors.purpleLight, borderColor: isSettled ? colors.border : colors.purpleLight }
                       ]}>
                         <Text style={{ fontSize: group.emoji ? 22 : 18 }}>
                           {group.emoji || "👥"}
@@ -235,35 +237,35 @@ export default function HomeScreen() {
                       </View>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <Text style={styles.groupName} numberOfLines={1}>{group.name}</Text>
+                          <Text style={[styles.groupName, { color: colors.text }]} numberOfLines={1}>{group.name}</Text>
                           {isSettled && <Text style={{ fontSize: 14 }}>✅</Text>}
                         </View>
-                        <Text style={styles.groupMembers}>👥 {group.members.length} members</Text>
+                        <Text style={[styles.groupMembers, { color: colors.textSecondary }]}>👥 {group.members.length} members</Text>
                       </View>
                     </View>
 
                     {/* Total spent + progress bar */}
                     <View style={{ marginBottom: 14 }}>
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                        <Text style={styles.spendLabel}>Total Spent</Text>
-                        <Text style={styles.spendAmount}>
+                        <Text style={[styles.spendLabel, { color: colors.textSecondary }]}>Total Spent</Text>
+                        <Text style={[styles.spendAmount, { color: colors.text }]}>
                           {currency}{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                       </View>
-                      <View style={styles.progressTrack}>
+                      <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
                         <View style={[styles.progressBar, { width: `${progressPct}%` as any, backgroundColor: barColor }]} />
                       </View>
                     </View>
 
                     {/* Bottom: avatar stack + balance */}
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                      <AvatarStack members={group.members} />
+                      <AvatarStack members={group.members} purpleLight={colors.purpleLight} />
                       <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.balanceTag}>
+                        <Text style={[styles.balanceTag, { color: colors.textSecondary }]}>
                           {isOwed ? "YOU ARE OWED" : isOwing ? "YOU OWE" : "SETTLED"}
                         </Text>
                         <Text style={[styles.balanceAmount, {
-                          color: isOwed ? PURPLE : isOwing ? "#E11D48" : "#9CA3AF"
+                          color: isOwed ? PURPLE : isOwing ? "#E11D48" : colors.textSecondary
                         }]}>
                           {currency}{Math.abs(balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
@@ -275,11 +277,11 @@ export default function HomeScreen() {
 
               {/* Dashed "Create New Group" card */}
               <TouchableOpacity style={styles.dashedCard} onPress={() => router.push("/new-group")} activeOpacity={0.8}>
-                <View style={styles.dashedIconCircle}>
+                <View style={[styles.dashedIconCircle, { backgroundColor: colors.purpleLight }]}>
                   <Text style={{ fontSize: 22, color: PURPLE }}>＋</Text>
                 </View>
-                <Text style={styles.dashedTitle}>Start a New Group</Text>
-                <Text style={styles.dashedSubtitle}>Perfect for roommates or travel.</Text>
+                <Text style={[styles.dashedTitle, { color: colors.text }]}>Start a New Group</Text>
+                <Text style={[styles.dashedSubtitle, { color: colors.textSecondary }]}>Perfect for roommates or travel.</Text>
               </TouchableOpacity>
             </>
           )}
@@ -310,7 +312,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── BOTTOM TAB BAR ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: true, onPress: undefined },
           { label: "EXPENSES", emoji: "🧾", active: false, onPress: () => router.push("/expenses") },
@@ -325,7 +327,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 18, marginBottom: 1 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveIndicator} />}

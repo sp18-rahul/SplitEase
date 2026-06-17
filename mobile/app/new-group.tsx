@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { users, groups, emailApi } from "@/api/client";
 import { useAuth } from "@/context/auth";
-import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -34,12 +33,12 @@ interface FoundUser { id: number; name: string; email: string; }
 export default function NewGroupScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
   const r = useResponsive();
   const insets = useSafeAreaInsets();
 
   const [groupName, setGroupName] = useState("");
   const [emoji, setEmoji] = useState("💰");
+  const [showEmojiGrid, setShowEmojiGrid] = useState(false);
   const [currency, setCurrency] = useState("INR");
   const [emailSearch, setEmailSearch] = useState("");
   const [searching, setSearching] = useState(false);
@@ -48,29 +47,27 @@ export default function NewGroupScreen() {
   const [members, setMembers] = useState<FoundUser[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Invite new user states
-  const [showInviteForm, setShowInviteForm] = useState(false);
+  // Invite form
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState("");
+
+  const [nameFocused, setNameFocused] = useState(false);
 
   const searchUser = async () => {
     if (!emailSearch.trim()) return;
-    setSearching(true);
-    setSearchError("");
-    setFoundUser(null);
+    setSearching(true); setSearchError(""); setFoundUser(null);
     try {
-      console.log("Searching for user:", emailSearch);
       const res = await users.findByEmail(emailSearch.trim().toLowerCase());
       const list: FoundUser[] = res.data;
-
       if (!list || list.length === 0) {
         setSearchError("No user found with that email.");
       } else {
         const found = list[0];
         if (found.id === user?.userId) {
-          setSearchError("That's you! You'll be added automatically.");
+          setSearchError("That's you — you're added automatically.");
         } else if (members.some((m) => m.id === found.id)) {
           setSearchError("Already added.");
         } else {
@@ -78,9 +75,7 @@ export default function NewGroupScreen() {
         }
       }
     } catch (error: any) {
-      console.error("Search error:", error);
-      const errorMsg = error.response?.data?.error || error.message || "Search failed. Try again.";
-      setSearchError(errorMsg);
+      setSearchError(error.response?.data?.error || error.message || "Search failed.");
     } finally {
       setSearching(false);
     }
@@ -97,64 +92,31 @@ export default function NewGroupScreen() {
   const generateTempPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
     let pwd = "";
-    for (let i = 0; i < 8; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    for (let i = 0; i < 8; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     return pwd;
   };
 
   const inviteNewUser = async () => {
-    if (!inviteName.trim() || !inviteEmail.trim()) {
-      setInviteError("Name and email are required");
-      return;
+    setInviteError(""); setInviteSuccess("");
+    if (!inviteName.trim() || !inviteEmail.trim()) { setInviteError("Name and email are required"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) { setInviteError("Invalid email format"); return; }
+    if (members.some((m) => m.email.toLowerCase() === inviteEmail.toLowerCase())) {
+      setInviteError("This user is already added"); return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
-      setInviteError("Invalid email format");
-      return;
-    }
-
-    // Check if email already exists
-    const emailExists = members.some((m) => m.email.toLowerCase() === inviteEmail.toLowerCase());
-    if (emailExists) {
-      setInviteError("This user is already added");
-      return;
-    }
-
     setInviting(true);
-    setInviteError("");
     try {
-      // Generate temporary password
       const tempPassword = generateTempPassword();
-
-      // Create user
-      console.log("Creating new user:", inviteName, inviteEmail);
       const res = await users.create({ name: inviteName.trim(), email: inviteEmail.trim() });
-      const newUser = { id: res.data.id, name: inviteName, email: inviteEmail };
-
-      console.log("User created, sending welcome email");
-      // Send welcome email
+      const newUser = { id: res.data.id, name: inviteName.trim(), email: inviteEmail.trim() };
       try {
-        await emailApi.sendWelcome(
-          inviteEmail.trim(),
-          inviteName.trim(),
-          tempPassword,
-          groupName || "a group",
-          user?.name || "A friend"
-        );
-      } catch (emailError: any) {
-        console.error("Email sending failed (non-critical):", emailError);
-        // Don't fail the whole operation if email fails
-      }
-
+        await emailApi.sendWelcome(inviteEmail.trim(), inviteName.trim(), tempPassword, groupName || "a group", user?.name || "A friend");
+      } catch { /* email non-critical */ }
       setMembers((prev) => [...prev, newUser]);
-      setInviteName("");
-      setInviteEmail("");
-      setShowInviteForm(false);
-      Alert.alert("Success", `${inviteName} invited! Check their email for login credentials.`);
+      setInviteName(""); setInviteEmail("");
+      setInviteSuccess(`${inviteName.trim()} invited! They'll receive login credentials via email.`);
+      setTimeout(() => setInviteSuccess(""), 4000);
     } catch (error: any) {
-      console.error("Invite error:", error);
-      const errorMsg = error.response?.data?.error || error.message || "Failed to invite user";
-      setInviteError(errorMsg);
+      setInviteError(error.response?.data?.error || error.message || "Failed to invite user");
     } finally {
       setInviting(false);
     }
@@ -162,281 +124,383 @@ export default function NewGroupScreen() {
 
   const createGroup = async () => {
     if (!groupName.trim()) { Alert.alert("Error", "Enter a group name"); return; }
-    if (members.length === 0) { Alert.alert("Error", "Please add at least one member"); return; }
-
+    if (members.length === 0) { Alert.alert("Error", "Add at least one member"); return; }
     setLoading(true);
     try {
-      const memberIds = members.map((m) => m.id);
-      console.log("Creating group with:", { name: groupName, memberIds, currency, emoji });
-
-      const res = await groups.create({
-        name: groupName.trim(),
-        memberIds,
-        currency,
-        emoji
-      });
-
-      console.log("Group created:", res.data);
-
-      if (res.data && res.data.id) {
+      const res = await groups.create({ name: groupName.trim(), memberIds: members.map((m) => m.id), currency, emoji });
+      if (res.data?.id) {
         router.replace(`/${res.data.id}`);
       } else {
         Alert.alert("Error", "Invalid response from server");
       }
     } catch (error: any) {
-      console.error("Create group error:", error);
-      const errorMsg = error.response?.data?.error ||
-                       error.message ||
-                       "Failed to create group. Please try again.";
-      Alert.alert("Error", errorMsg);
+      Alert.alert("Error", error.response?.data?.error || error.message || "Failed to create group.");
     } finally {
       setLoading(false);
     }
   };
 
   const hPad = r.hPad + r.s(16);
-  // How many emoji columns based on screen width
-  const emojiCols = r.isLargeTablet ? 10 : r.isTablet ? 8 : 5;
-  const emojiSize = r.s(48);
+  const canCreate = groupName.trim().length > 0 && members.length > 0 && !loading;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView
-        style={[styles.root, { backgroundColor: colors.background }]}
-        contentContainerStyle={{ paddingBottom: insets.bottom + r.s(120), paddingHorizontal: hPad, paddingTop: r.s(16) }}
-      >
-        {/* Emoji Picker */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
-          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(14) }]}>Group Emoji</Text>
-          <View style={[styles.emojiGrid, { gap: r.s(8) }]}>
-            {GROUP_EMOJIS.map((e) => (
-              <TouchableOpacity
-                key={e}
-                style={[
-                  styles.emojiBtn,
-                  { width: emojiSize, height: emojiSize, borderRadius: r.s(14) },
-                  emoji === e && styles.emojiBtnActive,
-                ]}
-                onPress={() => setEmoji(e)}
-              >
-                <Text style={{ fontSize: r.fs(22) }}>{e}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {/* Selected emoji preview */}
-          <View style={[styles.emojiPreview, { marginTop: r.s(14), borderRadius: r.s(12), paddingHorizontal: r.s(14), paddingVertical: r.s(10) }]}>
-            <Text style={{ fontSize: r.fs(24) }}>{emoji}</Text>
-            <Text style={[styles.emojiPreviewText, { fontSize: r.fs(13) }]}>Selected group emoji</Text>
-          </View>
-        </View>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: BG }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      {/* ── HEADER ── */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={{ fontSize: 18, color: PURPLE }}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Create Group</Text>
+        <TouchableOpacity
+          onPress={createGroup}
+          disabled={!canCreate}
+          style={[styles.createHeaderBtn, !canCreate && styles.createHeaderBtnOff]}
+        >
+          {loading
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.createHeaderBtnText}>Create</Text>}
+        </TouchableOpacity>
+      </View>
 
-        {/* Group name + currency card */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12) }]}>
-          {r.isTablet ? (
-            <View style={{ flexDirection: "row", gap: r.s(16) }}>
-              <View style={{ flex: 2 }}>
-                <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10) }]}>Group Name</Text>
-                <TextInput style={[styles.input, { fontSize: r.fs(15), padding: r.s(14) }]}
-                  placeholder="e.g., Goa Trip, Flat mates..." placeholderTextColor="#94a3b8"
-                  value={groupName} onChangeText={setGroupName} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: hPad, paddingTop: r.s(16), paddingBottom: insets.bottom + r.s(120) }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── TOP CARD: Emoji circle + Name + Currency ── */}
+        <View style={[styles.card, { borderRadius: r.s(18), padding: r.s(20), marginBottom: r.s(14) }]}>
+          <View style={{ flexDirection: "row", gap: r.s(16), alignItems: "flex-start" }}>
+            {/* Emoji circle (matches web's 96px circle) */}
+            <View style={{ alignItems: "center" }}>
+              <TouchableOpacity
+                style={[styles.emojiCircle, { width: r.s(80), height: r.s(80), borderRadius: r.s(40) }]}
+                onPress={() => setShowEmojiGrid(!showEmojiGrid)}
+                activeOpacity={0.85}
+              >
+                <Text style={{ fontSize: r.fs(38) }}>{emoji}</Text>
+              </TouchableOpacity>
+              {/* Edit badge */}
+              <View style={[styles.editBadge, { width: r.s(22), height: r.s(22), borderRadius: r.s(11), top: -r.s(4), right: -r.s(4) }]}>
+                <Text style={{ fontSize: r.fs(11), color: PURPLE }}>✏️</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10) }]}>Currency</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: r.s(8) }}>
-                  {CURRENCIES.map((c) => (
-                    <TouchableOpacity key={c.code}
-                      style={[styles.currPill, { paddingHorizontal: r.s(12), paddingVertical: r.s(8), borderRadius: r.s(20) }, currency === c.code && styles.currPillActive]}
-                      onPress={() => setCurrency(c.code)}>
-                      <Text style={[styles.currSymbol, { fontSize: r.fs(15) }]}>{c.symbol}</Text>
-                      <Text style={[styles.currCode, { fontSize: r.fs(13) }, currency === c.code && styles.currCodeActive]}>{c.code}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+              <Text style={{ fontSize: r.fs(10), color: "#9CA3AF", marginTop: r.s(6), fontWeight: "600" }}>
+                {showEmojiGrid ? "CLOSE" : "CHANGE"}
+              </Text>
             </View>
-          ) : (
-            <>
-              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10), color: colors.textSecondary }]}>Group Name</Text>
-              <TextInput style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(18), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
-                placeholder="e.g., Goa Trip, Flat mates..." placeholderTextColor="#94a3b8"
-                value={groupName} onChangeText={setGroupName} />
-              <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(10), color: colors.textSecondary }]}>Currency</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: r.s(8), paddingBottom: r.s(2) }}>
+
+            {/* Name + Currency */}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionLabel, { fontSize: r.fs(11), marginBottom: r.s(8) }]}>GROUP NAME</Text>
+              <TextInput
+                style={[styles.input, { fontSize: r.fs(15), padding: r.s(12), borderRadius: r.s(12), marginBottom: r.s(14) }, nameFocused && styles.inputFocused]}
+                placeholder="e.g., Goa Trip, Roommates"
+                placeholderTextColor="#94a3b8"
+                value={groupName}
+                onChangeText={setGroupName}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+              />
+              <Text style={[styles.sectionLabel, { fontSize: r.fs(11), marginBottom: r.s(8) }]}>CURRENCY</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: r.s(6) }}>
                 {CURRENCIES.map((c) => (
-                  <TouchableOpacity key={c.code}
-                    style={[styles.currPill, { gap: r.s(4), paddingHorizontal: r.s(14), paddingVertical: r.s(10), borderRadius: r.s(20), backgroundColor: colors.surface, borderColor: colors.border }, currency === c.code && styles.currPillActive]}
-                    onPress={() => setCurrency(c.code)}>
-                    <Text style={[styles.currSymbol, { fontSize: r.fs(15), color: colors.text }]}>{c.symbol}</Text>
-                    <Text style={[styles.currCode, { fontSize: r.fs(13), color: colors.textSecondary }, currency === c.code && styles.currCodeActive]}>{c.code}</Text>
+                  <TouchableOpacity
+                    key={c.code}
+                    style={[styles.currPill, { paddingHorizontal: r.s(10), paddingVertical: r.s(7), borderRadius: r.s(20) }, currency === c.code && styles.currPillActive]}
+                    onPress={() => setCurrency(c.code)}
+                  >
+                    <Text style={{ fontSize: r.fs(13), fontWeight: "700", color: currency === c.code ? PURPLE : "#64748b" }}>
+                      {c.symbol} {c.code}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </>
+            </View>
+          </View>
+
+          {/* Emoji grid (toggleable) */}
+          {showEmojiGrid && (
+            <View style={{ marginTop: r.s(16) }}>
+              <View style={{ height: 1, backgroundColor: "#F0EEFF", marginBottom: r.s(14) }} />
+              <Text style={[styles.sectionLabel, { fontSize: r.fs(11), marginBottom: r.s(10) }]}>PICK AN EMOJI</Text>
+              <View style={styles.emojiGrid}>
+                {GROUP_EMOJIS.map((e) => (
+                  <TouchableOpacity
+                    key={e}
+                    style={[
+                      styles.emojiBtn,
+                      { width: r.s(44), height: r.s(44), borderRadius: r.s(12) },
+                      emoji === e && styles.emojiBtnActive,
+                    ]}
+                    onPress={() => { setEmoji(e); setShowEmojiGrid(false); }}
+                  >
+                    <Text style={{ fontSize: r.fs(22) }}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           )}
         </View>
 
-        {/* Add Members */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
-          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>Add Members by Email</Text>
-          <View style={[styles.searchRow, { gap: r.s(10) }]}>
+        {/* ── ADD MEMBERS CARD ── */}
+        <View style={[styles.card, { borderRadius: r.s(18), padding: r.s(20), marginBottom: r.s(14) }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: r.s(10), marginBottom: r.s(16) }}>
+            <Text style={[styles.cardTitle, { fontSize: r.fs(16) }]}>Add Members</Text>
+            <View style={styles.memberBadge}>
+              <Text style={styles.memberBadgeText}>{members.length + 1} Selected</Text>
+            </View>
+          </View>
+
+          {/* Email search */}
+          <View style={[styles.searchRow, { gap: r.s(10), marginBottom: r.s(4) }]}>
             <TextInput
-              style={[styles.input, { flex: 1, fontSize: r.fs(15), padding: r.s(14), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
-              placeholder="friend@example.com" placeholderTextColor="#94a3b8"
-              keyboardType="email-address" autoCapitalize="none"
+              style={[styles.input, { flex: 1, fontSize: r.fs(14), padding: r.s(12), borderRadius: r.s(12) }]}
+              placeholder="friend@example.com"
+              placeholderTextColor="#94a3b8"
+              keyboardType="email-address"
+              autoCapitalize="none"
               value={emailSearch}
               onChangeText={(t) => { setEmailSearch(t); setSearchError(""); setFoundUser(null); }}
-              returnKeyType="search" onSubmitEditing={searchUser}
+              returnKeyType="search"
+              onSubmitEditing={searchUser}
             />
             <TouchableOpacity
               style={[styles.searchBtn, { paddingHorizontal: r.s(16), borderRadius: r.s(12), minWidth: r.s(64) }, !emailSearch.trim() && { backgroundColor: "#e2e8f0" }]}
-              onPress={searchUser} disabled={!emailSearch.trim() || searching}>
-              {searching ? <ActivityIndicator color="#fff" size="small" /> : <Text style={[styles.searchBtnText, { fontSize: r.fs(14) }]}>Find</Text>}
+              onPress={searchUser}
+              disabled={!emailSearch.trim() || searching}
+            >
+              {searching
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.searchBtnText}>Find</Text>}
             </TouchableOpacity>
           </View>
-          {!!searchError && <Text style={[styles.searchError, { fontSize: r.fs(13) }]}>{searchError}</Text>}
+
+          {!!searchError && (
+            <Text style={{ fontSize: r.fs(12), color: "#e11d48", marginBottom: r.s(8), fontWeight: "500" }}>{searchError}</Text>
+          )}
+
+          {/* Found user result */}
           {foundUser && (
-            <View style={[styles.foundCard, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginTop: r.s(10) }]}>
-              <View style={[styles.foundAvatar, { width: r.s(38), height: r.s(38), borderRadius: r.s(10) }]}>
+            <View style={[styles.foundCard, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8) }]}>
+              <View style={[styles.foundAvatar, { width: r.s(38), height: r.s(38), borderRadius: r.s(19) }]}>
                 <Text style={{ fontSize: r.fs(16), fontWeight: "800", color: "#16a34a" }}>{foundUser.name.charAt(0).toUpperCase()}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.foundName, { fontSize: r.fs(14) }]}>{foundUser.name}</Text>
-                <Text style={[styles.foundEmail, { fontSize: r.fs(12) }]}>{foundUser.email}</Text>
+                <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: "#0f172a" }}>{foundUser.name}</Text>
+                <Text style={{ fontSize: r.fs(12), color: "#64748b" }}>{foundUser.email}</Text>
               </View>
-              <TouchableOpacity style={[styles.addBtn, { paddingHorizontal: r.s(12), paddingVertical: r.s(8), borderRadius: r.s(10) }]} onPress={addMember}>
-                <Text style={[styles.addBtnText, { fontSize: r.fs(13) }]}>+ Add</Text>
+              <TouchableOpacity style={[styles.addBtn, { paddingHorizontal: r.s(14), paddingVertical: r.s(8), borderRadius: r.s(20) }]} onPress={addMember}>
+                <Text style={styles.addBtnText}>+ Add</Text>
               </TouchableOpacity>
             </View>
           )}
-        </View>
 
-        {/* Invite New User */}
-        {!showInviteForm ? (
-          <TouchableOpacity
-            style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: PURPLE_LIGHT }]}
-            onPress={() => setShowInviteForm(true)}>
-            <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(8), color: PURPLE }]}>+ Invite New User</Text>
-            <Text style={[{ fontSize: r.fs(13), color: PURPLE, fontWeight: "600" }]}>Create account and add to group</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
-            <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>Invite New User</Text>
-            {!!inviteError && <Text style={[{ fontSize: r.fs(13), color: "#e11d48", marginBottom: r.s(10), fontWeight: "600" }]}>{inviteError}</Text>}
-
-            <TextInput
-              style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(10), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
-              placeholder="Full name" placeholderTextColor="#94a3b8"
-              value={inviteName}
-              onChangeText={setInviteName}
-            />
-            <TextInput
-              style={[styles.input, { fontSize: r.fs(15), padding: r.s(14), marginBottom: r.s(12), borderColor: colors.border, backgroundColor: isDark ? "#1e293b" : "#f8fafc", color: colors.text }]}
-              placeholder="email@example.com" placeholderTextColor="#94a3b8"
-              keyboardType="email-address" autoCapitalize="none"
-              value={inviteEmail}
-              onChangeText={setInviteEmail}
-            />
-
-            <View style={{ flexDirection: "row", gap: r.s(10) }}>
-              <TouchableOpacity
-                style={[styles.searchBtn, { flex: 1, paddingHorizontal: r.s(16), borderRadius: r.s(12) }]}
-                onPress={inviteNewUser} disabled={inviting}>
-                {inviting ? <ActivityIndicator color="#fff" size="small" /> : <Text style={[styles.searchBtnText, { fontSize: r.fs(14) }]}>Send Invite</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.searchBtn, { paddingHorizontal: r.s(16), borderRadius: r.s(12), backgroundColor: "#e2e8f0" }]}
-                onPress={() => { setShowInviteForm(false); setInviteError(""); setInviteName(""); setInviteEmail(""); }}>
-                <Text style={[styles.searchBtnText, { fontSize: r.fs(14), color: "#64748b" }]}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* Members List */}
-        <View style={[styles.formCard, { borderRadius: r.s(18), padding: r.s(18), marginBottom: r.s(12), backgroundColor: colors.surface }]}>
-          <Text style={[styles.label, { fontSize: r.fs(12), marginBottom: r.s(12), color: colors.textSecondary }]}>
-            Members ({members.length + 1})
-          </Text>
-          <View style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={[styles.memberAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(10), backgroundColor: PURPLE_LIGHT }]}>
-              <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: PURPLE }}>
+          {/* Creator row (always shown) */}
+          <View style={[styles.memberRow, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(6) }]}>
+            <View style={[styles.memberAvatar, { width: r.s(40), height: r.s(40), borderRadius: r.s(20), backgroundColor: PURPLE }]}>
+              <Text style={{ fontSize: r.fs(16), fontWeight: "900", color: "white" }}>
                 {user?.name?.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{user?.name} (you)</Text>
-              <Text style={[styles.memberEmail, { fontSize: r.fs(12), color: colors.textSecondary }]}>{user?.email}</Text>
+              <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: "#0f172a" }}>{user?.name} (You)</Text>
+              <Text style={{ fontSize: r.fs(12), color: "#64748b" }}>{user?.email}</Text>
+            </View>
+            <View style={styles.creatorChip}>
+              <Text style={styles.creatorChipText}>Creator</Text>
             </View>
           </View>
+
+          {/* Added members */}
           {members.map((m) => (
-            <View key={m.id} style={[styles.memberRow, { gap: r.s(12), borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.memberAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(10), backgroundColor: isDark ? "#334155" : "#f1f5f9" }]}>
-                <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: isDark ? "#e2e8f0" : "#475569" }}>{m.name.charAt(0).toUpperCase()}</Text>
+            <View key={m.id} style={[styles.memberRow, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(6), borderColor: PURPLE_LIGHT, borderWidth: 1 }]}>
+              <View style={[styles.memberAvatar, { width: r.s(40), height: r.s(40), borderRadius: r.s(20), backgroundColor: PURPLE_LIGHT }]}>
+                <Text style={{ fontSize: r.fs(16), fontWeight: "700", color: PURPLE }}>{m.name.charAt(0).toUpperCase()}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{m.name}</Text>
-                <Text style={[styles.memberEmail, { fontSize: r.fs(12), color: colors.textSecondary }]}>{m.email}</Text>
+                <Text style={{ fontSize: r.fs(14), fontWeight: "700", color: "#0f172a" }}>{m.name}</Text>
+                <Text style={{ fontSize: r.fs(12), color: "#64748b" }}>{m.email}</Text>
               </View>
-              <TouchableOpacity onPress={() => removeMember(m.id)}
-                style={[styles.removeBtn, { width: r.s(28), height: r.s(28), borderRadius: r.s(14) }]}>
+              <TouchableOpacity
+                onPress={() => removeMember(m.id)}
+                style={[styles.removeBtn, { width: r.s(28), height: r.s(28), borderRadius: r.s(14) }]}
+              >
                 <Text style={{ fontSize: r.fs(13), color: "#e11d48", fontWeight: "700" }}>✕</Text>
               </TouchableOpacity>
             </View>
           ))}
+
+          {members.length === 0 && !foundUser && (
+            <View style={{ alignItems: "center", paddingVertical: r.s(16) }}>
+              <Text style={{ fontSize: r.fs(13), color: "#94a3b8", textAlign: "center" }}>
+                Search by email to find members, or invite new users below
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* ── INVITE NEW USER CARD ── */}
+        <View style={[styles.card, { borderRadius: r.s(18), padding: r.s(20), marginBottom: r.s(14) }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: r.s(10), marginBottom: r.s(16) }}>
+            <View style={[styles.inviteIcon, { width: r.s(36), height: r.s(36), borderRadius: r.s(10) }]}>
+              <Text style={{ fontSize: r.fs(18) }}>📨</Text>
+            </View>
+            <Text style={[styles.cardTitle, { fontSize: r.fs(16) }]}>Invite New User</Text>
+          </View>
+
+          {!!inviteError && (
+            <View style={[styles.errorBox, { borderRadius: r.s(10), padding: r.s(10), marginBottom: r.s(12) }]}>
+              <Text style={{ fontSize: r.fs(12), color: "#e11d48", fontWeight: "600" }}>⚠️ {inviteError}</Text>
+            </View>
+          )}
+          {!!inviteSuccess && (
+            <View style={[styles.successBox, { borderRadius: r.s(10), padding: r.s(10), marginBottom: r.s(12) }]}>
+              <Text style={{ fontSize: r.fs(12), color: "#16a34a", fontWeight: "600" }}>✓ {inviteSuccess}</Text>
+            </View>
+          )}
+
+          <Text style={[styles.sectionLabel, { fontSize: r.fs(11), marginBottom: r.s(8) }]}>NAME</Text>
+          <TextInput
+            style={[styles.input, { fontSize: r.fs(14), padding: r.s(12), borderRadius: r.s(12), marginBottom: r.s(12) }]}
+            placeholder="e.g., John Doe"
+            placeholderTextColor="#94a3b8"
+            value={inviteName}
+            onChangeText={setInviteName}
+          />
+          <Text style={[styles.sectionLabel, { fontSize: r.fs(11), marginBottom: r.s(8) }]}>EMAIL</Text>
+          <TextInput
+            style={[styles.input, { fontSize: r.fs(14), padding: r.s(12), borderRadius: r.s(12), marginBottom: r.s(16) }]}
+            placeholder="john@example.com"
+            placeholderTextColor="#94a3b8"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={inviteEmail}
+            onChangeText={setInviteEmail}
+          />
+
+          <TouchableOpacity
+            style={[styles.inviteBtn, { padding: r.s(14), borderRadius: r.s(12) }, inviting && { backgroundColor: "#C4B5FD" }]}
+            onPress={inviteNewUser}
+            disabled={inviting || !inviteName.trim() || !inviteEmail.trim()}
+          >
+            {inviting
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={styles.inviteBtnText}>📧  Send Invite & Add</Text>}
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-
-      <View style={[styles.bottomBar, { paddingHorizontal: hPad, paddingBottom: insets.bottom + r.s(16), backgroundColor: colors.background, borderColor: colors.border }]}>
+      {/* ── BOTTOM CREATE BUTTON ── */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + r.s(16), paddingHorizontal: hPad }]}>
         <TouchableOpacity
-          style={[styles.btn, { padding: r.s(16), borderRadius: r.s(14) }, (!groupName.trim() || loading) && styles.btnDisabled]}
-          onPress={createGroup} disabled={!groupName.trim() || loading} activeOpacity={0.85}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { fontSize: r.fs(16) }]}>Create Group</Text>}
+          style={[styles.createBtn, { padding: r.s(16), borderRadius: r.s(999) }, !canCreate && styles.createBtnOff]}
+          onPress={createGroup}
+          disabled={!canCreate}
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.createBtnText}>👥  Create Group</Text>}
         </TouchableOpacity>
+        <Text style={{ fontSize: r.fs(11), color: "#94a3b8", textAlign: "center", marginTop: r.s(10) }}>
+          {members.length === 0 ? "Add at least one member to continue" : `You + ${members.length} member${members.length > 1 ? "s" : ""} · ${currency}`}
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
-  label: { fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 },
-  input: { borderWidth: 1.5, borderColor: "#e2e8f0", borderRadius: 12, color: "#0f172a", backgroundColor: "#f8fafc" },
-  formCard: {
-    backgroundColor: "#fff",
-    shadowColor: "#7C3AED",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
+  // Header
+  header: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#F0EEFF",
   },
-  emojiGrid: { flexDirection: "row", flexWrap: "wrap" },
-  emojiBtn: { backgroundColor: "#f8f5ff", borderWidth: 2, borderColor: "#e2e8f0", alignItems: "center", justifyContent: "center" },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: "#F5F0FF",
+    alignItems: "center", justifyContent: "center",
+  },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: "#1D1A24" },
+  createHeaderBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, backgroundColor: PURPLE },
+  createHeaderBtnOff: { backgroundColor: "#C4B5FD" },
+  createHeaderBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  // Cards
+  card: {
+    backgroundColor: "#fff", borderWidth: 1, borderColor: "#F0EEFF",
+    shadowColor: PURPLE, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
+  },
+  cardTitle: { fontWeight: "800", color: "#1D1A24" },
+
+  // Emoji
+  emojiCircle: {
+    backgroundColor: PURPLE, alignItems: "center", justifyContent: "center",
+    shadowColor: PURPLE, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+  },
+  editBadge: {
+    position: "absolute", backgroundColor: "#fff",
+    borderWidth: 1.5, borderColor: PURPLE_LIGHT,
+    alignItems: "center", justifyContent: "center",
+  },
+  emojiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  emojiBtn: {
+    backgroundColor: "#f8f5ff", borderWidth: 2, borderColor: "#e2e8f0",
+    alignItems: "center", justifyContent: "center",
+  },
   emojiBtnActive: { borderColor: PURPLE, backgroundColor: PURPLE_LIGHT },
-  emojiPreview: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#EDE9FE", borderWidth: 1, borderColor: "#C4B5FD" },
-  emojiPreviewText: { color: "#7C3AED", fontWeight: "600" },
-  currPill: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1.5, borderColor: "#e2e8f0", backgroundColor: "#fff" },
-  currPillActive: { borderColor: PURPLE, backgroundColor: PURPLE_LIGHT },
-  currSymbol: { fontWeight: "700", color: "#0f172a" },
-  currCode: { fontWeight: "600", color: "#64748b" },
-  currCodeActive: { color: PURPLE },
+
+  // Form
+  sectionLabel: {
+    fontWeight: "700", color: "#64748b",
+    textTransform: "uppercase", letterSpacing: 0.8,
+  },
+  input: { borderWidth: 1.5, borderColor: "#E4D9F7", color: "#0f172a", backgroundColor: "#fff" },
+  inputFocused: { borderColor: PURPLE, backgroundColor: PURPLE_LIGHT },
+  currPill: { borderWidth: 1.5, borderColor: "#e2e8f0", backgroundColor: "#f8fafc" },
+  currPillActive: { borderColor: PURPLE_LIGHT, backgroundColor: PURPLE_LIGHT },
+
+  // Member search
   searchRow: { flexDirection: "row" },
   searchBtn: { backgroundColor: PURPLE, alignItems: "center", justifyContent: "center" },
-  searchBtnText: { color: "#fff", fontWeight: "700" },
-  searchError: { color: "#e11d48", marginTop: 8, fontWeight: "500" },
-  foundCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#bbf7d0" },
+  searchBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  memberBadge: {
+    backgroundColor: PURPLE, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 3,
+  },
+  memberBadgeText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+
+  // Found user
+  foundCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#bbf7d0",
+  },
   foundAvatar: { backgroundColor: "#dcfce7", alignItems: "center", justifyContent: "center" },
-  foundName: { fontWeight: "700", color: "#0f172a" },
-  foundEmail: { color: "#64748b" },
   addBtn: { backgroundColor: "#16a34a" },
-  addBtnText: { color: "#fff", fontWeight: "700" },
-  memberRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: "#f1f5f9" },
-  memberAvatar: { backgroundColor: "#f1f5f9", alignItems: "center", justifyContent: "center" },
-  memberName: { fontWeight: "700", color: "#0f172a" },
-  memberEmail: { color: "#64748b" },
+  addBtnText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+
+  // Member rows
+  memberRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#fafafa", borderWidth: 1, borderColor: "#F0EEFF" },
+  memberAvatar: { alignItems: "center", justifyContent: "center" },
+  creatorChip: { backgroundColor: "#F0EEFF", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  creatorChipText: { fontSize: 12, fontWeight: "700", color: PURPLE },
   removeBtn: { backgroundColor: "#fff1f2", alignItems: "center", justifyContent: "center" },
-  bottomBar: { backgroundColor: BG, paddingTop: 16, borderTopWidth: 1, borderColor: "#e2e8f0" },
-  btn: { backgroundColor: PURPLE, alignItems: "center" },
-  btnDisabled: { backgroundColor: "#C4B5FD" },
-  btnText: { color: "#fff", fontWeight: "700" },
+
+  // Invite section
+  inviteIcon: { backgroundColor: "#F0EEFF", alignItems: "center", justifyContent: "center" },
+  inviteBtn: { backgroundColor: PURPLE, alignItems: "center" },
+  inviteBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  errorBox: { backgroundColor: "#fff1f2", borderWidth: 1, borderColor: "#fecdd3" },
+  successBox: { backgroundColor: "#f0fdf4", borderWidth: 1, borderColor: "#bbf7d0" },
+
+  // Bottom
+  bottomBar: {
+    backgroundColor: "#fff", paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: "#F0EEFF",
+  },
+  createBtn: { backgroundColor: PURPLE, alignItems: "center" },
+  createBtnOff: { backgroundColor: "#C4B5FD" },
+  createBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

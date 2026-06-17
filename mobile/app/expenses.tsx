@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { personalExpenses as personalExpensesApi } from "@/api/client";
 
 const PURPLE = "#7C3AED";
@@ -62,6 +63,7 @@ function dateLabel(dateStr: string): string {
 export default function ExpensesScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
@@ -140,9 +142,9 @@ export default function ExpensesScreen() {
   const netBalance = stats?.netBalance ?? 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
@@ -162,17 +164,17 @@ export default function ExpensesScreen() {
       >
         {/* ── PAGE TITLE ── */}
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>Activity Feed</Text>
-          <Text style={styles.pageSubtitle}>Keep track of all your shared expenses across all groups.</Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Activity Feed</Text>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Keep track of all your shared expenses across all groups.</Text>
         </View>
 
         {/* ── SEARCH ── */}
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search expenses, groups..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -181,7 +183,7 @@ export default function ExpensesScreen() {
           />
           {!!search && (
             <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 14, color: "#9CA3AF" }}>✕</Text>
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -189,34 +191,34 @@ export default function ExpensesScreen() {
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color={PURPLE} />
-            <Text style={styles.loadingText}>Loading expenses…</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading expenses…</Text>
           </View>
         ) : (
           <>
             {/* ── STAT CARDS (web-style 2x2 grid) ── */}
             <View style={styles.statsGrid}>
               {/* Total Share */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.statCardTop}>
-                  <Text style={styles.statCardLabel}>Total Share</Text>
+                  <Text style={[styles.statCardLabel, { color: colors.textSecondary }]}>Total Share</Text>
                   <Text style={{ fontSize: 20 }}>🍩</Text>
                 </View>
-                <Text style={styles.statCardAmount}>
+                <Text style={[styles.statCardAmount, { color: colors.text }]}>
                   {s}{(stats?.totalMyShare ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </Text>
-                <Text style={styles.statCardSub}>Across {groups.length} group{groups.length !== 1 ? "s" : ""}</Text>
+                <Text style={[styles.statCardSub, { color: colors.textSecondary }]}>Across {groups.length} group{groups.length !== 1 ? "s" : ""}</Text>
               </View>
 
               {/* Amount Paid */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.statCardTop}>
-                  <Text style={styles.statCardLabel}>Amount Paid</Text>
+                  <Text style={[styles.statCardLabel, { color: colors.textSecondary }]}>Amount Paid</Text>
                   <Text style={{ fontSize: 20, color: BROWN }}>💳</Text>
                 </View>
-                <Text style={styles.statCardAmount}>
+                <Text style={[styles.statCardAmount, { color: colors.text }]}>
                   {s}{(stats?.totalPaidByMe ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </Text>
-                <Text style={styles.statCardSub}>
+                <Text style={[styles.statCardSub, { color: colors.textSecondary }]}>
                   Settled {stats && stats.totalMyShare > 0 ? Math.round((stats.totalPaidByMe / stats.totalMyShare) * 100) : 0}% total
                 </Text>
               </View>
@@ -236,20 +238,20 @@ export default function ExpensesScreen() {
               </View>
 
               {/* Bill Count */}
-              <View style={styles.statCard}>
+              <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.statCardTop}>
-                  <Text style={styles.statCardLabel}>Bill Count</Text>
+                  <Text style={[styles.statCardLabel, { color: colors.textSecondary }]}>Bill Count</Text>
                   <Text style={{ fontSize: 20 }}>🧾</Text>
                 </View>
-                <Text style={styles.statCardAmount}>{stats?.count ?? 0}</Text>
-                <Text style={styles.statCardSub}>Last 30 days</Text>
+                <Text style={[styles.statCardAmount, { color: colors.text }]}>{stats?.count ?? 0}</Text>
+                <Text style={[styles.statCardSub, { color: colors.textSecondary }]}>Last 30 days</Text>
               </View>
             </View>
 
             {/* ── FILTER SECTION ── */}
-            <View style={styles.filterSection}>
+            <View style={[styles.filterSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               {/* Filter chips pill */}
-              <View style={styles.filterPill}>
+              <View style={[styles.filterPill, { backgroundColor: colors.card }]}>
                 {(["all", "i_paid", "i_owe", "i_am_owed"] as FilterType[]).map((f) => {
                   const labels: Record<FilterType, string> = {
                     all: "All", i_paid: "I Paid", i_owe: "I Owe", i_am_owed: "Owed to Me",
@@ -262,7 +264,7 @@ export default function ExpensesScreen() {
                       style={[styles.pillChip, active && styles.pillChipActive]}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.pillChipText, active && styles.pillChipTextActive]}>
+                      <Text style={[styles.pillChipText, { color: active ? "#fff" : colors.textSecondary }]}>
                         {labels[f]}
                       </Text>
                     </TouchableOpacity>
@@ -275,17 +277,23 @@ export default function ExpensesScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
                   <TouchableOpacity
                     onPress={() => setGroupFilter(null)}
-                    style={[styles.tagChip, groupFilter === null && styles.tagChipActive]}
+                    style={[styles.tagChip, groupFilter === null
+                      ? { backgroundColor: colors.purpleLight, borderColor: PURPLE }
+                      : { backgroundColor: colors.surface, borderColor: colors.border }
+                    ]}
                   >
-                    <Text style={[styles.tagChipText, groupFilter === null && styles.tagChipTextActive]}>All Groups</Text>
+                    <Text style={[styles.tagChipText, { color: groupFilter === null ? PURPLE : colors.text }]}>All Groups</Text>
                   </TouchableOpacity>
                   {groups.map((g) => (
                     <TouchableOpacity
                       key={g.id}
                       onPress={() => setGroupFilter(groupFilter === g.id ? null : g.id)}
-                      style={[styles.tagChip, groupFilter === g.id && styles.tagChipActive]}
+                      style={[styles.tagChip, groupFilter === g.id
+                        ? { backgroundColor: colors.purpleLight, borderColor: PURPLE }
+                        : { backgroundColor: colors.surface, borderColor: colors.border }
+                      ]}
                     >
-                      <Text style={[styles.tagChipText, groupFilter === g.id && styles.tagChipTextActive]}>
+                      <Text style={[styles.tagChipText, { color: groupFilter === g.id ? PURPLE : colors.text }]}>
                         {g.emoji} {g.name}
                       </Text>
                     </TouchableOpacity>
@@ -296,12 +304,12 @@ export default function ExpensesScreen() {
 
             {/* ── EXPENSE LIST ── */}
             {filtered.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={{ fontSize: 36, marginBottom: 12 }}>🔍</Text>
-                <Text style={styles.emptyTitle}>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>
                   {expenses.length === 0 ? "No expenses yet" : "No matching expenses"}
                 </Text>
-                <Text style={styles.emptySubtitle}>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   {expenses.length === 0
                     ? "Add an expense inside any group to see it here."
                     : "Try changing your search or filters."}
@@ -311,7 +319,7 @@ export default function ExpensesScreen() {
               <View style={{ paddingHorizontal: 16 }}>
                 {grouped.map(({ label, items }) => (
                   <View key={label} style={{ marginBottom: 20 }}>
-                    <Text style={styles.sectionLabel}>{label.toUpperCase()}</Text>
+                    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{label.toUpperCase()}</Text>
                     {items.map((expense) => {
                       const cs = sym(expense.group.currency);
                       const net = expense.net;
@@ -331,13 +339,13 @@ export default function ExpensesScreen() {
                         statusColor = PURPLE;
                       } else {
                         statusText = "Settled up";
-                        statusColor = "#9CA3AF";
+                        statusColor = colors.textSecondary;
                       }
 
                       return (
                         <TouchableOpacity
                           key={expense.id}
-                          style={styles.expenseRow}
+                          style={[styles.expenseRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
                           onPress={() => router.push(`/${expense.group.id}/edit-expense?expenseId=${expense.id}` as any)}
                           activeOpacity={0.7}
                         >
@@ -348,12 +356,12 @@ export default function ExpensesScreen() {
 
                           {/* Content */}
                           <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.expenseDesc} numberOfLines={1}>{expense.description}</Text>
+                            <Text style={[styles.expenseDesc, { color: colors.text }]} numberOfLines={1}>{expense.description}</Text>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
                               <View style={styles.groupBadge}>
                                 <Text style={styles.groupBadgeText}>{expense.group.name}</Text>
                               </View>
-                              <Text style={styles.expenseTime}>
+                              <Text style={[styles.expenseTime, { color: colors.textSecondary }]}>
                                 {new Date(expense.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                               </Text>
                             </View>
@@ -361,7 +369,7 @@ export default function ExpensesScreen() {
 
                           {/* Amount */}
                           <View style={{ alignItems: "flex-end", flexShrink: 0, minWidth: 100 }}>
-                            <Text style={styles.expenseTotal}>
+                            <Text style={[styles.expenseTotal, { color: colors.text }]}>
                               {cs}{expense.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Text>
                             <Text style={[styles.expenseStatus, { color: statusColor }]} numberOfLines={1}>
@@ -374,7 +382,7 @@ export default function ExpensesScreen() {
                   </View>
                 ))}
 
-                <Text style={styles.footerCount}>
+                <Text style={[styles.footerCount, { color: colors.textSecondary }]}>
                   Showing {filtered.length} of {expenses.length} expenses
                 </Text>
               </View>
@@ -384,7 +392,7 @@ export default function ExpensesScreen() {
       </ScrollView>
 
       {/* ── BOTTOM NAV ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: false, route: "/" },
           { label: "EXPENSES", emoji: "🧾", active: true, route: "/expenses" },
@@ -399,7 +407,7 @@ export default function ExpensesScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 18, marginBottom: 1 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveBar} />}

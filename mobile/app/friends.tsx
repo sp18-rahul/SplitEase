@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { groups as groupsApi, balances as balancesApi, users as usersApi } from "@/api/client";
 
 // Derive pairwise balances from the API's settlement-aware transactions.
@@ -60,6 +61,7 @@ function getAvatarColor(id: number): string {
 export default function FriendsScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
@@ -72,7 +74,7 @@ export default function FriendsScreen() {
   const [search, setSearch] = useState("");
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [addFriendSearch, setAddFriendSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [sentRequests, setSentRequests] = useState<Set<number>>(new Set());
 
@@ -83,20 +85,28 @@ export default function FriendsScreen() {
     ]);
   };
 
-  const handleSearchUsers = useCallback(async (query: string) => {
-    setAddFriendSearch(query);
-    if (!query.trim()) { setSearchResults([]); return; }
+  // Load all users once when modal opens, then filter client-side
+  const handleOpenAddFriend = useCallback(async () => {
+    setShowAddFriendModal(true);
+    if (allUsers.length > 0) return; // already loaded
     setSearching(true);
     try {
-      const res = await usersApi.search(query);
+      const res = await usersApi.getAll();
       const users = Array.isArray(res.data) ? res.data : [];
-      setSearchResults(users.filter((u: any) => u.id !== currentUserId));
+      setAllUsers(users.filter((u: any) => u.id !== currentUserId));
     } catch {
-      setSearchResults([]);
+      setAllUsers([]);
     } finally {
       setSearching(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, allUsers.length]);
+
+  const searchResults = addFriendSearch.trim()
+    ? allUsers.filter((u: any) =>
+        u.name?.toLowerCase().includes(addFriendSearch.toLowerCase()) ||
+        u.email?.toLowerCase().includes(addFriendSearch.toLowerCase())
+      )
+    : [];
 
   const handleAddFriend = useCallback(async (userId: number) => {
     setSentRequests(new Set([...sentRequests, userId]));
@@ -197,9 +207,9 @@ export default function FriendsScreen() {
     `${currSym}${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
@@ -207,7 +217,7 @@ export default function FriendsScreen() {
           <Text style={styles.headerBrand}>SplitEase</Text>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity style={styles.headerIconBtn} onPress={() => setShowAddFriendModal(true)}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={handleOpenAddFriend}>
             <Text style={{ fontSize: 16 }}>➕</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
@@ -225,12 +235,12 @@ export default function FriendsScreen() {
         {/* ── PAGE TITLE + SEARCH ── */}
         <View style={styles.pageHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>Friends</Text>
-            <Text style={styles.pageSubtitle}>Manage your connections and balances.</Text>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Friends</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Manage your connections and balances.</Text>
           </View>
           <TouchableOpacity
             style={styles.addFriendBtn}
-            onPress={() => setShowAddFriendModal(true)}
+            onPress={handleOpenAddFriend}
             activeOpacity={0.85}
           >
             <Text style={styles.addFriendBtnText}>＋ Add Friend</Text>
@@ -238,12 +248,12 @@ export default function FriendsScreen() {
         </View>
 
         {/* ── SEARCH ── */}
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search friends..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -252,7 +262,7 @@ export default function FriendsScreen() {
           />
           {!!search && (
             <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 14, color: "#9CA3AF" }}>✕</Text>
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -260,7 +270,7 @@ export default function FriendsScreen() {
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color={PURPLE} />
-            <Text style={styles.loadingText}>Loading friends...</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading friends...</Text>
           </View>
         ) : (
           <>
@@ -268,12 +278,12 @@ export default function FriendsScreen() {
             {!search && friends.length > 0 && (
               <View style={styles.summarySection}>
                 {/* Card 1: Total Owed to You */}
-                <View style={styles.summaryCardPurple}>
+                <View style={[styles.summaryCardPurple, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   <View style={styles.summaryIconCircle}>
                     <Text style={{ fontSize: 24 }}>💳</Text>
                   </View>
                   <View>
-                    <Text style={styles.summaryLabel}>Total Owed to You</Text>
+                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Total Owed to You</Text>
                     <Text style={[styles.summaryAmount, { color: PURPLE }]}>
                       {formatAmount(totalOwedToMe)}
                     </Text>
@@ -281,22 +291,22 @@ export default function FriendsScreen() {
                 </View>
 
                 {/* Card 2: You Owe + Active Connections */}
-                <View style={styles.summaryCardCombined}>
+                <View style={[styles.summaryCardCombined, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 12 }}>
                     <View style={[styles.summaryIconCircle, { backgroundColor: BROWN }]}>
                       <Text style={{ fontSize: 24 }}>🤲</Text>
                     </View>
                     <View>
-                      <Text style={styles.summaryLabel}>You Owe Total</Text>
+                      <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>You Owe Total</Text>
                       <Text style={[styles.summaryAmount, { color: BROWN }]}>
                         {formatAmount(totalIOwe)}
                       </Text>
                     </View>
                   </View>
-                  <View style={styles.summaryDivider} />
+                  <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={styles.summaryLabel}>Active Connections</Text>
-                    <Text style={[styles.summaryAmount, { color: "#1D1A24", fontSize: 18 }]}>
+                    <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Active Connections</Text>
+                    <Text style={[styles.summaryAmount, { color: colors.text, fontSize: 18 }]}>
                       {friends.length} Friends
                     </Text>
                   </View>
@@ -306,16 +316,16 @@ export default function FriendsScreen() {
 
             {/* ── FRIENDS LIST (alphabetical, web-style) ── */}
             {friends.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={{ fontSize: 48, marginBottom: 12 }}>👥</Text>
-                <Text style={styles.emptyTitle}>No friends yet</Text>
-                <Text style={styles.emptySubtitle}>Join a group with others to see them here</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>No friends yet</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Join a group with others to see them here</Text>
               </View>
             ) : filteredFriends.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
-                <Text style={styles.emptyTitle}>No friends found</Text>
-                <Text style={styles.emptySubtitle}>Try a different name or email</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>No friends found</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Try a different name or email</Text>
               </View>
             ) : (
               <View style={{ paddingHorizontal: 16 }}>
@@ -324,7 +334,7 @@ export default function FriendsScreen() {
                     {/* Alpha section header */}
                     <View style={styles.alphaHeader}>
                       <Text style={styles.alphaLetter}>{letter}</Text>
-                      <View style={styles.alphaDivider} />
+                      <View style={[styles.alphaDivider, { backgroundColor: colors.border }]} />
                     </View>
 
                     {/* Friend cards */}
@@ -333,13 +343,13 @@ export default function FriendsScreen() {
                       const isOwed = friend.balance > 0;
                       const isOwing = friend.balance < 0;
                       const balLabel = isOwed ? "owes you" : isOwing ? "you owe" : "settled up";
-                      const balColor = isOwed ? PURPLE : isOwing ? BROWN : "#9CA3AF";
+                      const balColor = isOwed ? PURPLE : isOwing ? BROWN : colors.textSecondary;
                       const balAmount = `${sym}${Math.abs(friend.balance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
                       return (
                         <TouchableOpacity
                           key={friend.id}
-                          style={styles.friendCard}
+                          style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                           activeOpacity={0.7}
                         >
                           {/* Avatar (circular, like web) */}
@@ -357,15 +367,15 @@ export default function FriendsScreen() {
 
                           {/* Name + mutual groups */}
                           <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.friendName} numberOfLines={1}>{friend.name}</Text>
-                            <Text style={styles.friendMutual}>
+                            <Text style={[styles.friendName, { color: colors.text }]} numberOfLines={1}>{friend.name}</Text>
+                            <Text style={[styles.friendMutual, { color: colors.textSecondary }]}>
                               👥 {friend.mutualGroups} mutual group{friend.mutualGroups !== 1 ? "s" : ""}
                             </Text>
                           </View>
 
                           {/* Balance (web-style: label above, amount below) */}
                           <View style={{ alignItems: "flex-end", flexShrink: 0 }}>
-                            <Text style={styles.balLabel}>{balLabel}</Text>
+                            <Text style={[styles.balLabel, { color: colors.textSecondary }]}>{balLabel}</Text>
                             <Text style={[styles.balAmount, { color: balColor }]}>
                               {balAmount}
                             </Text>
@@ -384,35 +394,35 @@ export default function FriendsScreen() {
       {/* ── ADD FRIEND MODAL ── */}
       <Modal visible={showAddFriendModal} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
             {/* Drag handle */}
             <View style={{ alignItems: "center", paddingVertical: 12 }}>
               <View style={styles.modalHandle} />
             </View>
 
             {/* Header */}
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <View>
-                <Text style={styles.modalTitle}>Add Friend</Text>
-                <Text style={styles.modalSubtitle}>Search and invite friends</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Friend</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Search and invite friends</Text>
               </View>
               <TouchableOpacity
                 style={styles.modalCloseBtn}
-                onPress={() => { setShowAddFriendModal(false); setAddFriendSearch(""); setSearchResults([]); }}
+                onPress={() => { setShowAddFriendModal(false); setAddFriendSearch(""); }}
               >
-                <Text style={{ fontSize: 16, color: "#4A4455" }}>✕</Text>
+                <Text style={{ fontSize: 16, color: colors.text }}>✕</Text>
               </TouchableOpacity>
             </View>
 
             {/* Search */}
-            <View style={styles.modalSearchWrap}>
+            <View style={[styles.modalSearchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.searchIcon}>🔍</Text>
               <TextInput
-                style={styles.modalSearchInput}
+                style={[styles.modalSearchInput, { color: colors.text }]}
                 placeholder="Search by name or email..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textSecondary}
                 value={addFriendSearch}
-                onChangeText={handleSearchUsers}
+                onChangeText={setAddFriendSearch}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -423,16 +433,16 @@ export default function FriendsScreen() {
               {searching ? (
                 <View style={styles.centerState}>
                   <ActivityIndicator size="large" color={PURPLE} />
-                  <Text style={styles.loadingText}>Searching...</Text>
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Searching...</Text>
                 </View>
               ) : addFriendSearch.trim() && searchResults.length === 0 ? (
                 <View style={styles.centerState}>
                   <Text style={{ fontSize: 40, marginBottom: 12 }}>🔍</Text>
-                  <Text style={styles.emptyTitle}>No users found</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>No users found</Text>
                 </View>
               ) : !addFriendSearch.trim() ? (
                 <View style={{ alignItems: "center", paddingVertical: 32, paddingHorizontal: 24 }}>
-                  <Text style={{ fontSize: 13, color: "#7B7487", textAlign: "center" }}>
+                  <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: "center" }}>
                     Friends are people you share groups with. Search to find and connect with them!
                   </Text>
                 </View>
@@ -443,7 +453,7 @@ export default function FriendsScreen() {
                   return (
                     <View
                       key={u.id}
-                      style={[styles.userSearchResult, { opacity: isAlreadyFriend ? 0.6 : 1 }]}
+                      style={[styles.userSearchResult, { backgroundColor: colors.card, borderColor: colors.border, opacity: isAlreadyFriend ? 0.6 : 1 }]}
                     >
                       <View style={[styles.userAvatar, { backgroundColor: AVATAR_COLORS[u.id % AVATAR_COLORS.length] }]}>
                         <Text style={{ fontSize: 16, fontWeight: "700", color: "#fff" }}>
@@ -451,8 +461,8 @@ export default function FriendsScreen() {
                         </Text>
                       </View>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.userName} numberOfLines={1}>{u.name}</Text>
-                        <Text style={styles.userEmail} numberOfLines={1}>{u.email}</Text>
+                        <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{u.name}</Text>
+                        <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>{u.email}</Text>
                       </View>
                       {isAlreadyFriend ? (
                         <View style={[styles.statusBadge, { backgroundColor: "#DCFCE7" }]}>
@@ -477,7 +487,7 @@ export default function FriendsScreen() {
       </Modal>
 
       {/* ── BOTTOM NAV ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: false, route: "/" },
           { label: "EXPENSES", emoji: "🧾", active: false, route: "/expenses" },
@@ -492,7 +502,7 @@ export default function FriendsScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 20, marginBottom: 2 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveBar} />}

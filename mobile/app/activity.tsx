@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "@/context/auth";
+import { useTheme } from "@/context/theme";
 import { groups as groupsApi, activityApi } from "@/api/client";
 
 const PURPLE = "#7C3AED";
@@ -55,6 +56,7 @@ function getAvatarColor(id: number): string {
 export default function ActivityScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   if (!user) return <Redirect href="/login" />;
 
   const insets = useSafeAreaInsets();
@@ -134,9 +136,9 @@ export default function ActivityScreen() {
   }, [filtered]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
@@ -157,11 +159,11 @@ export default function ActivityScreen() {
         {/* ── PAGE HEADER + FILTER TABS ── */}
         <View style={styles.pageHeaderRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pageTitle}>Activity</Text>
-            <Text style={styles.pageSubtitle}>Track your recent shared expenses and settlements</Text>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Activity</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Track your recent shared expenses and settlements</Text>
           </View>
           {/* Filter tabs pill (web-style) */}
-          <View style={styles.filterPill}>
+          <View style={[styles.filterPill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {(["all", "expenses", "settlements"] as FilterTab[]).map(key => (
               <TouchableOpacity
                 key={key}
@@ -169,7 +171,7 @@ export default function ActivityScreen() {
                 style={[styles.pillBtn, filter === key && styles.pillBtnActive]}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.pillBtnText, filter === key && styles.pillBtnTextActive]}>
+                <Text style={[styles.pillBtnText, { color: colors.text }, filter === key && styles.pillBtnTextActive]}>
                   {key.charAt(0).toUpperCase() + key.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -178,12 +180,12 @@ export default function ActivityScreen() {
         </View>
 
         {/* ── SEARCH ── */}
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search activity..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="none"
@@ -192,7 +194,7 @@ export default function ActivityScreen() {
           />
           {!!search && (
             <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 14, color: "#9CA3AF" }}>✕</Text>
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -200,15 +202,15 @@ export default function ActivityScreen() {
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" color={PURPLE} />
-            <Text style={styles.loadingText}>Loading activity...</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading activity...</Text>
           </View>
         ) : filtered.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconCircle}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: colors.border }]}>
               <Text style={{ fontSize: 26 }}>🕐</Text>
             </View>
-            <Text style={styles.emptyTitle}>No activity yet</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No activity yet</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {search ? "Try a different search term" : "Activity will appear here when expenses are added."}
             </Text>
           </View>
@@ -217,10 +219,10 @@ export default function ActivityScreen() {
             {grouped.map(({ label, items: sectionItems }) => (
               <View key={label} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
                 {/* Date label */}
-                <Text style={styles.sectionLabel}>{label}</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{label}</Text>
 
                 {/* White card with activity items */}
-                <View style={styles.activityCard}>
+                <View style={[styles.activityCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   {sectionItems.map((item, idx) => {
                     const s = sym(item.groupCurrency);
                     const isSettlement = item.type === "settlement";
@@ -235,6 +237,7 @@ export default function ActivityScreen() {
                         key={item.id}
                         style={[
                           styles.activityItem,
+                          { borderBottomColor: colors.border },
                           idx === sectionItems.length - 1 && { borderBottomWidth: 0 },
                         ]}
                         onPress={() => router.push(`/${item.groupId}` as any)}
@@ -256,13 +259,13 @@ export default function ActivityScreen() {
 
                         {/* Description + time */}
                         <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={styles.activityText} numberOfLines={2}>
+                          <Text style={[styles.activityText, { color: colors.text }]} numberOfLines={2}>
                             <Text style={{ fontWeight: "700" }}>{item.actor.name}</Text>
                             {isSettlement
                               ? ` settled up for "${item.title}"`
                               : ` added "${item.title}" in ${item.groupName}`}
                           </Text>
-                          <Text style={styles.activityTime}>🕐 {timeAgo(item.createdAt)}</Text>
+                          <Text style={[styles.activityTime, { color: colors.textSecondary }]}>🕐 {timeAgo(item.createdAt)}</Text>
                         </View>
 
                         {/* Amount */}
@@ -270,7 +273,7 @@ export default function ActivityScreen() {
                           <Text style={[styles.activityAmount, { color: amountColor }]}>
                             {amountPrefix} {s}{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </Text>
-                          <Text style={styles.activityAmountLabel}>{amountLabel}</Text>
+                          <Text style={[styles.activityAmountLabel, { color: colors.textSecondary }]}>{amountLabel}</Text>
                         </View>
                       </TouchableOpacity>
                     );
@@ -281,12 +284,12 @@ export default function ActivityScreen() {
 
             {/* End of recent updates (web-style dashed card) */}
             {!search && (
-              <View style={[styles.endCard, { marginHorizontal: 16, marginBottom: 8 }]}>
-                <View style={styles.endIconCircle}>
+              <View style={[styles.endCard, { marginHorizontal: 16, marginBottom: 8, backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.endIconCircle, { backgroundColor: colors.card }]}>
                   <Text style={{ fontSize: 22 }}>🕐</Text>
                 </View>
-                <Text style={styles.endTitle}>End of recent updates</Text>
-                <Text style={styles.endSubtitle}>
+                <Text style={[styles.endTitle, { color: colors.text }]}>End of recent updates</Text>
+                <Text style={[styles.endSubtitle, { color: colors.textSecondary }]}>
                   You have seen all activity from the past 7 days.
                 </Text>
               </View>
@@ -296,7 +299,7 @@ export default function ActivityScreen() {
       </ScrollView>
 
       {/* ── BOTTOM NAV ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: false, route: "/" },
           { label: "EXPENSES", emoji: "🧾", active: false, route: "/expenses" },
@@ -311,7 +314,7 @@ export default function ActivityScreen() {
             activeOpacity={0.7}
           >
             <Text style={{ fontSize: 20, marginBottom: 2 }}>{tab.emoji}</Text>
-            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : "#94a3b8", fontWeight: tab.active ? "700" : "500" }]}>
+            <Text style={[styles.tabLabel, { color: tab.active ? PURPLE : colors.textSecondary, fontWeight: tab.active ? "700" : "500" }]}>
               {tab.label}
             </Text>
             {tab.active && <View style={styles.tabActiveBar} />}

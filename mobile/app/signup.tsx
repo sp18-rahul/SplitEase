@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/auth";
-import { useTheme } from "@/context/theme";
 import { useResponsive } from "@/utils/responsive";
 
 const PURPLE = "#7C3AED";
@@ -23,8 +22,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 export default function SignupScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const { colors } = useTheme();
-  const { s, fs, hPad } = useResponsive();
+  const { s, fs, hPad, contentWidth } = useResponsive();
   const insets = useSafeAreaInsets();
 
   if (user) return <Redirect href="/" />;
@@ -38,6 +36,11 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const [nameFocused, setNameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passFocused, setPassFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
+
   const getPasswordStrength = (pwd: string): number => {
     if (pwd.length === 0) return 0;
     if (pwd.length < 4) return 1;
@@ -48,56 +51,32 @@ export default function SignupScreen() {
 
   const strength = getPasswordStrength(password);
   const strengthColors = ["#E4D9F7", "#E11D48", "#F59E0B", PURPLE, "#10B981"];
+  const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
 
   const handleSignup = async () => {
     setError("");
-
-    if (!name.trim()) {
-      setError("Please enter your full name");
-      return;
-    }
-
+    if (!name.trim()) { setError("Please enter your full name"); return; }
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email");
-      return;
+      setError("Please enter a valid email"); return;
     }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
 
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          password,
-        }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Signup failed");
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || "Signup failed"); return; }
       Alert.alert(
-        "Success",
-        "Account created! Please sign in with your credentials.",
-        [{ text: "OK", onPress: () => router.replace("/login") }]
+        "Account Created!",
+        "Please sign in with your new credentials.",
+        [{ text: "Sign In", onPress: () => router.replace("/login") }]
       );
-    } catch (err) {
-      console.error("Signup error:", err);
+    } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
@@ -106,197 +85,154 @@ export default function SignupScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.background }]}
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      {/* Same decorative blobs as login */}
+      <View style={[styles.blob1, { width: s(280), height: s(280), borderRadius: s(140), top: -s(80), right: -s(90) }]} />
+      <View style={[styles.blob2, { width: s(200), height: s(200), borderRadius: s(100), bottom: s(80), left: -s(70) }]} />
+      <View style={[styles.blob3, { width: s(120), height: s(120), borderRadius: s(60), top: s(200), left: s(40) }]} />
+
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: hPad + s(16),
-          paddingTop: insets.top + s(20),
-          paddingBottom: insets.bottom + s(40),
-        }}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingHorizontal: hPad + s(24),
+            paddingTop: insets.top + s(24),
+            paddingBottom: insets.bottom + s(24),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <View style={{ marginBottom: s(32), alignItems: "center" }}>
-          <View
-            style={{
-              width: s(60),
-              height: s(60),
-              backgroundColor: PURPLE,
-              borderRadius: s(16),
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: s(12),
-            }}
-          >
-            <Text style={{ fontSize: s(32) }}>💸</Text>
+        {/* Hero — identical to login */}
+        <View style={[styles.hero, { marginBottom: s(28) }]}>
+          <View style={[styles.logoRing, { width: s(104), height: s(104), borderRadius: s(52), marginBottom: s(20) }]}>
+            <View style={[styles.logoCircle, { width: s(88), height: s(88), borderRadius: s(44) }]}>
+              <Text style={{ fontSize: fs(40) }}>💸</Text>
+            </View>
           </View>
-          <Text style={[styles.title, { fontSize: fs(28) }]}>SplitEase</Text>
-          <Text style={[styles.subtitle, { fontSize: fs(14), marginTop: s(8) }]}>
-            Create your account
+          <Text style={[styles.appName, { fontSize: fs(36) }]}>SplitEase</Text>
+          <Text style={[styles.tagline, { fontSize: fs(15) }]}>
+            Split expenses with friends, effortlessly.
           </Text>
         </View>
 
         {/* Card */}
-        <View
-          style={[
-            styles.card,
-            {
-              borderRadius: s(20),
-              padding: s(24),
-              backgroundColor: colors.surface,
-            },
-          ]}
-        >
-          {error && (
-            <View
-              style={[
-                styles.errorBox,
-                { borderRadius: s(10), padding: s(12), marginBottom: s(16) },
-              ]}
-            >
-              <Text style={[styles.errorText, { fontSize: fs(13) }]}>
-                {error}
-              </Text>
+        <View style={[styles.card, { maxWidth: contentWidth, width: "100%", alignSelf: "center", borderRadius: s(28), padding: s(28) }]}>
+          <View style={[styles.cardAccent, { borderRadius: s(4) }]} />
+          <Text style={[styles.cardTitle, { fontSize: fs(22), marginBottom: s(20) }]}>Create Account</Text>
+
+          {!!error && (
+            <View style={[styles.errorBox, { borderRadius: s(12), padding: s(12), marginBottom: s(16) }]}>
+              <Text style={[styles.errorText, { fontSize: fs(13) }]}>⚠️  {error}</Text>
             </View>
           )}
 
           {/* Full Name */}
-          <View style={{ marginBottom: s(16) }}>
-            <Text style={[styles.label, { fontSize: fs(12) }]}>Full Name</Text>
-            <TextInput
-              style={[styles.input, { fontSize: fs(14), padding: s(12) }]}
-              placeholder="John Doe"
-              placeholderTextColor="#94a3b8"
-              value={name}
-              onChangeText={setName}
-              editable={!loading}
-            />
-          </View>
+          <Text style={[styles.label, { fontSize: fs(11) }]}>Full Name</Text>
+          <TextInput
+            style={[styles.input, { fontSize: fs(15), padding: s(14), borderRadius: s(14), marginBottom: s(16) }, nameFocused && styles.inputFocused]}
+            placeholder="John Doe"
+            placeholderTextColor="#94a3b8"
+            value={name}
+            onChangeText={setName}
+            editable={!loading}
+            returnKeyType="next"
+            onFocus={() => setNameFocused(true)}
+            onBlur={() => setNameFocused(false)}
+          />
 
           {/* Email */}
-          <View style={{ marginBottom: s(16) }}>
-            <Text style={[styles.label, { fontSize: fs(12) }]}>Email</Text>
-            <TextInput
-              style={[styles.input, { fontSize: fs(14), padding: s(12) }]}
-              placeholder="you@example.com"
-              placeholderTextColor="#94a3b8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              editable={!loading}
-            />
-          </View>
+          <Text style={[styles.label, { fontSize: fs(11) }]}>Email</Text>
+          <TextInput
+            style={[styles.input, { fontSize: fs(15), padding: s(14), borderRadius: s(14), marginBottom: s(16) }, emailFocused && styles.inputFocused]}
+            placeholder="you@example.com"
+            placeholderTextColor="#94a3b8"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={setEmail}
+            editable={!loading}
+            returnKeyType="next"
+            onFocus={() => setEmailFocused(true)}
+            onBlur={() => setEmailFocused(false)}
+          />
 
           {/* Password */}
-          <View style={{ marginBottom: s(16) }}>
-            <Text style={[styles.label, { fontSize: fs(12) }]}>Password</Text>
-            <View style={[styles.inputContainer, { borderRadius: s(10) }]}>
-              <TextInput
-                style={[
-                  styles.passwordInput,
-                  { fontSize: fs(14), paddingRight: s(40) },
-                ]}
-                placeholder="••••••••"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                <Text style={{ fontSize: fs(18) }}>
-                  {showPassword ? "👁️" : "👁️‍🗨️"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            {/* Strength bars */}
-            <View style={{ flexDirection: "row", gap: s(4), marginTop: s(8) }}>
-              {[1, 2, 3, 4].map((level) => (
-                <View
-                  key={level}
-                  style={{
-                    flex: 1,
-                    height: s(6),
-                    borderRadius: s(3),
-                    backgroundColor:
-                      strength >= level ? strengthColors[strength] : "#E4D9F7",
-                  }}
-                />
-              ))}
-            </View>
+          <Text style={[styles.label, { fontSize: fs(11) }]}>Password</Text>
+          <View style={[styles.inputWrap, { borderRadius: s(14), marginBottom: s(8) }, passFocused && styles.inputFocused]}>
+            <TextInput
+              style={[styles.inputInner, { fontSize: fs(15), padding: s(14) }]}
+              placeholder="••••••••"
+              placeholderTextColor="#94a3b8"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
+              returnKeyType="next"
+              onFocus={() => setPassFocused(true)}
+              onBlur={() => setPassFocused(false)}
+            />
+            <TouchableOpacity style={{ paddingRight: s(14) }} onPress={() => setShowPassword(!showPassword)}>
+              <Text style={{ fontSize: fs(16) }}>{showPassword ? "👁️" : "🙈"}</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Password strength bars */}
+          {password.length > 0 && (
+            <View style={{ marginBottom: s(16) }}>
+              <View style={{ flexDirection: "row", gap: s(4), marginBottom: s(4) }}>
+                {[1, 2, 3, 4].map((level) => (
+                  <View
+                    key={level}
+                    style={{ flex: 1, height: s(4), borderRadius: s(2), backgroundColor: strength >= level ? strengthColors[strength] : "#E4D9F7" }}
+                  />
+                ))}
+              </View>
+              <Text style={{ fontSize: fs(11), color: strength > 0 ? strengthColors[strength] : "#94a3b8", fontWeight: "600" }}>
+                {strengthLabels[strength]}
+              </Text>
+            </View>
+          )}
+          {password.length === 0 && <View style={{ marginBottom: s(16) }} />}
 
           {/* Confirm Password */}
-          <View style={{ marginBottom: s(24) }}>
-            <Text style={[styles.label, { fontSize: fs(12) }]}>
-              Confirm Password
-            </Text>
-            <View style={[styles.inputContainer, { borderRadius: s(10) }]}>
-              <TextInput
-                style={[
-                  styles.passwordInput,
-                  { fontSize: fs(14), paddingRight: s(40) },
-                ]}
-                placeholder="••••••••"
-                placeholderTextColor="#94a3b8"
-                secureTextEntry={!showConfirm}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setShowConfirm(!showConfirm)}
-                disabled={loading}
-              >
-                <Text style={{ fontSize: fs(18) }}>
-                  {showConfirm ? "👁️" : "👁️‍🗨️"}
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <Text style={[styles.label, { fontSize: fs(11) }]}>Confirm Password</Text>
+          <View style={[styles.inputWrap, { borderRadius: s(14), marginBottom: s(24) }, confirmFocused && styles.inputFocused]}>
+            <TextInput
+              style={[styles.inputInner, { fontSize: fs(15), padding: s(14) }]}
+              placeholder="••••••••"
+              placeholderTextColor="#94a3b8"
+              secureTextEntry={!showConfirm}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!loading}
+              returnKeyType="done"
+              onSubmitEditing={handleSignup}
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
+            />
+            <TouchableOpacity style={{ paddingRight: s(14) }} onPress={() => setShowConfirm(!showConfirm)}>
+              <Text style={{ fontSize: fs(16) }}>{showConfirm ? "👁️" : "🙈"}</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Sign Up Button */}
           <TouchableOpacity
-            style={[
-              styles.btn,
-              { padding: s(14), borderRadius: s(10) },
-              loading && styles.btnDisabled,
-            ]}
+            style={[styles.btn, { padding: s(16), borderRadius: s(14) }, loading && styles.btnDisabled]}
             onPress={handleSignup}
             disabled={loading}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={[styles.btnText, { fontSize: fs(15) }]}>
-                Create Account
-              </Text>
-            )}
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={[styles.btnText, { fontSize: fs(16) }]}>Create Account →</Text>}
           </TouchableOpacity>
 
-          {/* Sign In Link */}
-          <View style={{ marginTop: s(16), flexDirection: "row", justifyContent: "center" }}>
-            <Text style={[styles.footerText, { fontSize: fs(13) }]}>
-              Already have an account?{" "}
-            </Text>
+          <View style={[styles.signupRow, { marginTop: s(20) }]}>
+            <Text style={[styles.signupText, { fontSize: fs(13) }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.replace("/login")}>
-              <Text
-                style={[
-                  styles.footerLink,
-                  { fontSize: fs(13), fontWeight: "600" },
-                ]}
-              >
-                Sign In
-              </Text>
+              <Text style={[styles.signupLink, { fontSize: fs(13) }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -306,78 +242,60 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  root: { flex: 1, backgroundColor: PURPLE, overflow: "hidden" },
+  blob1: { position: "absolute", backgroundColor: "rgba(255,255,255,0.09)" },
+  blob2: { position: "absolute", backgroundColor: "rgba(255,255,255,0.06)" },
+  blob3: { position: "absolute", backgroundColor: "rgba(255,255,255,0.04)" },
+  scroll: { flexGrow: 1, justifyContent: "center" },
+  hero: { alignItems: "center" },
+  logoRing: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.2)",
   },
-  title: {
-    fontWeight: "800",
-    color: "#7C3AED",
+  logoCircle: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: "rgba(255,255,255,0.3)",
   },
-  subtitle: {
-    color: "#7B7487",
-  },
+  appName: { fontWeight: "900", color: "#fff", marginBottom: 8, letterSpacing: -0.5 },
+  tagline: { color: "rgba(255,255,255,0.8)", textAlign: "center" },
   card: {
     backgroundColor: "#fff",
-    shadowColor: "#7C3AED",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: "#1e1b4b",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    elevation: 12,
   },
+  cardAccent: { height: 4, backgroundColor: PURPLE, marginBottom: 20, width: 48 },
+  cardTitle: { fontWeight: "800", color: "#0f172a" },
+  errorBox: { backgroundColor: "#fff1f2", borderWidth: 1, borderColor: "#fecdd3" },
+  errorText: { color: "#e11d48", fontWeight: "600" },
   label: {
-    fontWeight: "600",
-    color: "#1D1A24",
-    marginBottom: 6,
+    fontWeight: "700", color: "#64748b",
+    textTransform: "uppercase", letterSpacing: 0.8,
+    marginBottom: 8, marginTop: 2,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#E4D9F7",
-    borderRadius: 10,
-    color: "#1D1A24",
-    backgroundColor: "#fff",
+    borderWidth: 1.5, borderColor: "#e2e8f0",
+    color: "#0f172a", backgroundColor: "#f8fafc",
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E4D9F7",
-    backgroundColor: "#fff",
+  inputWrap: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1.5, borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
-  passwordInput: {
-    flex: 1,
-    color: "#1D1A24",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  eyeBtn: {
-    paddingRight: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  inputInner: { flex: 1, color: "#0f172a" },
+  inputFocused: { borderColor: PURPLE, backgroundColor: "#EDE9FE" },
   btn: {
-    backgroundColor: "#7C3AED",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: PURPLE, alignItems: "center",
+    shadowColor: PURPLE, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  errorBox: {
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-  },
-  errorText: {
-    color: "#e11d48",
-    fontWeight: "600",
-  },
-  footerText: {
-    color: "#7B7487",
-  },
-  footerLink: {
-    color: "#7C3AED",
-  },
+  btnDisabled: { backgroundColor: "#C4B5FD", shadowOpacity: 0, elevation: 0 },
+  btnText: { color: "#fff", fontWeight: "700" },
+  signupRow: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  signupText: { color: "#64748b" },
+  signupLink: { color: PURPLE, fontWeight: "700" },
 });

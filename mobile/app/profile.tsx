@@ -83,16 +83,16 @@ export default function ProfileScreen() {
 
   if (loadingProfile) {
     return (
-      <View style={{ flex: 1, backgroundColor: BG, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={PURPLE} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: BG }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* ── HEADER ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={styles.headerAvatar}>
             <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>{initial}</Text>
@@ -110,7 +110,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── PROFILE HERO CARD (web-style) ── */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Top row: avatar + name/email */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 14 }}>
             {/* Big circular avatar */}
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
               {editingName ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <TextInput
-                    style={[styles.nameInput, { flex: 1 }]}
+                    style={[styles.nameInput, { flex: 1, color: colors.text, borderColor: PURPLE }]}
                     value={name}
                     onChangeText={t => { setName(t); setSaved(false); setError(""); }}
                     autoFocus
@@ -147,18 +147,18 @@ export default function ProfileScreen() {
                       ? <ActivityIndicator size="small" color="white" />
                       : <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>Save</Text>}
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditingName(false)}>
-                    <Text style={{ color: "#475569", fontSize: 12 }}>✕</Text>
+                  <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.background }]} onPress={() => setEditingName(false)}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>✕</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <Text style={styles.heroName} numberOfLines={2}>{user?.name}</Text>
+                <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={2}>{user?.name}</Text>
               )}
               {!!error && <Text style={{ color: "#E11D48", fontSize: 12, marginBottom: 4 }}>{error}</Text>}
               {saved && <Text style={{ color: "#16a34a", fontSize: 12, marginBottom: 4 }}>Name updated!</Text>}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Text style={{ fontSize: 14, color: PURPLE }}>✅</Text>
-                <Text style={styles.heroEmail} numberOfLines={1}>{user?.email}</Text>
+                <Text style={[styles.heroEmail, { color: colors.textSecondary }]} numberOfLines={1}>{user?.email}</Text>
               </View>
             </View>
           </View>
@@ -179,42 +179,42 @@ export default function ProfileScreen() {
 
         {/* ── STAT CARDS (web-style 3-col) ── */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={{ fontSize: 24, color: PURPLE, marginBottom: 6 }}>👥</Text>
-            <Text style={styles.statLabel}>ACTIVE GROUPS</Text>
-            <Text style={styles.statValue}>—</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>ACTIVE GROUPS</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>—</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={{ fontSize: 24, color: PURPLE, marginBottom: 6 }}>⬆️</Text>
-            <Text style={styles.statLabel}>YOU'RE OWED</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>YOU'RE OWED</Text>
             <Text style={[styles.statValue, { color: PURPLE, fontSize: 16 }]}>—</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={{ fontSize: 24, color: "#E11D48", marginBottom: 6 }}>⬇️</Text>
-            <Text style={styles.statLabel}>YOU OWE</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>YOU OWE</Text>
             <Text style={[styles.statValue, { color: "#E11D48", fontSize: 16 }]}>—</Text>
           </View>
         </View>
 
         {/* ── PAYMENT DETAILS CARD ── */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.cardSectionHeader}>
             <View style={styles.cardSectionIcon}>
               <Text style={{ fontSize: 18 }}>💳</Text>
             </View>
-            <Text style={styles.cardSectionTitle}>Payment Details</Text>
+            <Text style={[styles.cardSectionTitle, { color: colors.text }]}>Payment Details</Text>
           </View>
 
-          <Text style={styles.fieldLabel}>Default UPI ID</Text>
-          <View style={styles.upiRow}>
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Default UPI ID</Text>
+          <View style={[styles.upiRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
             {editingUpi ? (
               <>
                 <TextInput
-                  style={[styles.upiInput, { flex: 1 }]}
+                  style={[styles.upiInput, { flex: 1, color: colors.text }]}
                   value={upiId}
                   onChangeText={setUpiId}
                   placeholder="yourname@upi"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textSecondary}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   autoFocus
@@ -226,27 +226,27 @@ export default function ProfileScreen() {
                 >
                   <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>Save</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditingUpi(false)}>
-                  <Text style={{ color: "#475569", fontSize: 12 }}>✕</Text>
+                <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: colors.background }]} onPress={() => setEditingUpi(false)}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>✕</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={[styles.upiInput, { flex: 1, color: upiId ? "#1D1A24" : "#9CA3AF" }]}>
+                <Text style={[styles.upiInput, { flex: 1, color: upiId ? colors.text : colors.textSecondary }]}>
                   {upiId || "Not set"}
                 </Text>
                 <TouchableOpacity onPress={() => setEditingUpi(true)} style={{ padding: 4 }}>
-                  <Text style={{ fontSize: 16, color: "#7B7487" }}>📋</Text>
+                  <Text style={{ fontSize: 16, color: colors.textSecondary }}>📋</Text>
                 </TouchableOpacity>
               </>
             )}
           </View>
-          {upiSuccess && <Text style={{ color: "#16a34a", fontSize: 12, marginTop: 6 }}>UPI ID saved!</Text>}
-          <Text style={styles.fieldHint}>This ID will be shared with group members to settle debts.</Text>
+          {upiSuccess && <Text style={{ color: colors.success, fontSize: 12, marginTop: 6 }}>UPI ID saved!</Text>}
+          <Text style={[styles.fieldHint, { color: colors.textSecondary }]}>This ID will be shared with group members to settle debts.</Text>
 
           <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-            <TouchableOpacity style={styles.outlineBtn}>
-              <Text style={styles.outlineBtnText}>View QR Code</Text>
+            <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.border }]}>
+              <Text style={[styles.outlineBtnText, { color: colors.text }]}>View QR Code</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -258,45 +258,51 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── APP PREFERENCES CARD ── */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.cardSectionHeader}>
-            <View style={[styles.cardSectionIcon, { backgroundColor: "#F0EEFF" }]}>
+            <View style={[styles.cardSectionIcon, { backgroundColor: colors.purpleLight }]}>
               <Text style={{ fontSize: 18 }}>⚙️</Text>
             </View>
-            <Text style={styles.cardSectionTitle}>App Preferences</Text>
+            <Text style={[styles.cardSectionTitle, { color: colors.text }]}>App Preferences</Text>
           </View>
 
           {/* Currency */}
-          <View style={styles.prefRow}>
+          <View style={[styles.prefRow, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.prefTitle}>Currency Preference</Text>
-              <Text style={styles.prefSubtitle}>Set your default currency for new groups</Text>
+              <Text style={[styles.prefTitle, { color: colors.text }]}>Currency Preference</Text>
+              <Text style={[styles.prefSubtitle, { color: colors.textSecondary }]}>Set your default currency for new groups</Text>
             </View>
-            <View style={styles.prefValueChip}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: "#1D1A24" }}>₹ INR</Text>
+            <View style={[styles.prefValueChip, { backgroundColor: colors.purpleLight }]}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: PURPLE }}>₹ INR</Text>
             </View>
           </View>
 
           {/* Dark Mode */}
           <View style={[styles.prefRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.prefTitle}>Dark Mode</Text>
-              <Text style={styles.prefSubtitle}>
-                {theme === "system" ? "System" : theme === "dark" ? "Always On" : "Always Off"}
+              <Text style={[styles.prefTitle, { color: colors.text }]}>Appearance</Text>
+              <Text style={[styles.prefSubtitle, { color: colors.textSecondary }]}>
+                {theme === "system" ? "Follow system setting" : theme === "dark" ? "Always dark" : "Always light"}
               </Text>
             </View>
             <View style={{ flexDirection: "row", gap: 6 }}>
-              {(["light", "dark", "system"] as const).map(t => (
+              {([
+                { key: "light", label: "☀️", title: "Light" },
+                { key: "dark",  label: "🌙", title: "Dark" },
+                { key: "system", label: "📱", title: "Auto" },
+              ] as const).map(({ key: t, label, title }) => (
                 <TouchableOpacity
                   key={t}
                   onPress={() => handleThemeChange(t)}
                   style={[
                     styles.themeChip,
                     theme === t && styles.themeChipActive,
+                    theme !== t && { backgroundColor: colors.background, borderColor: colors.border },
                   ]}
                 >
-                  <Text style={[styles.themeChipText, theme === t && styles.themeChipTextActive]}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  <Text style={{ fontSize: 12 }}>{label}</Text>
+                  <Text style={[styles.themeChipText, theme === t && styles.themeChipTextActive, theme !== t && { color: colors.textSecondary }]}>
+                    {title}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -305,17 +311,17 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── SECURITY CARD ── */}
-        <View style={styles.sectionCard}>
-          <Text style={[styles.cardSectionTitle, { marginBottom: 14 }]}>Security &amp; Privacy</Text>
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardSectionTitle, { marginBottom: 14, color: colors.text }]}>Security &amp; Privacy</Text>
 
-          <View style={styles.prefRow}>
+          <View style={[styles.prefRow, { borderBottomColor: colors.border }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-              <View style={[styles.cardSectionIcon, { backgroundColor: PURPLE_LIGHT }]}>
+              <View style={[styles.cardSectionIcon, { backgroundColor: colors.purpleLight }]}>
                 <Text style={{ fontSize: 16 }}>🔐</Text>
               </View>
               <View>
-                <Text style={styles.prefTitle}>Two-Factor Auth</Text>
-                <Text style={styles.prefSubtitle}>{twoFAEnabled ? "Enabled via SMS" : "Disabled"}</Text>
+                <Text style={[styles.prefTitle, { color: colors.text }]}>Two-Factor Auth</Text>
+                <Text style={[styles.prefSubtitle, { color: colors.textSecondary }]}>{twoFAEnabled ? "Enabled via SMS" : "Disabled"}</Text>
               </View>
             </View>
             <Switch
@@ -331,20 +337,20 @@ export default function ProfileScreen() {
             onPress={() => router.push("/forgot-password")}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-              <View style={[styles.cardSectionIcon, { backgroundColor: PURPLE_LIGHT }]}>
+              <View style={[styles.cardSectionIcon, { backgroundColor: colors.purpleLight }]}>
                 <Text style={{ fontSize: 16 }}>👤</Text>
               </View>
               <View>
-                <Text style={styles.prefTitle}>Change Password</Text>
-                <Text style={styles.prefSubtitle}>Send reset link to email</Text>
+                <Text style={[styles.prefTitle, { color: colors.text }]}>Change Password</Text>
+                <Text style={[styles.prefSubtitle, { color: colors.textSecondary }]}>Send reset link to email</Text>
               </View>
             </View>
-            <Text style={{ color: "#9CA3AF", fontSize: 18 }}>›</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 18 }}>›</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── DANGER ZONE ── */}
-        <View style={styles.dangerCard}>
+        <View style={[styles.dangerCard, { backgroundColor: colors.surface }]}>
           <View style={styles.cardSectionHeader}>
             <View style={[styles.cardSectionIcon, { backgroundColor: "#E11D48" }]}>
               <Text style={{ fontSize: 18 }}>⚠️</Text>
@@ -365,11 +371,11 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        <Text style={styles.version}>SPLITEASE V1.0.0 • BUILD 100</Text>
+        <Text style={[styles.version, { color: colors.textSecondary }]}>SPLITEASE V1.0.0 • BUILD 100</Text>
       </ScrollView>
 
       {/* ── BOTTOM NAV ── */}
-      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4 }]}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         {[
           { label: "GROUPS", emoji: "👥", active: false, route: "/" },
           { label: "EXPENSES", emoji: "🧾", active: false, route: "/expenses" },

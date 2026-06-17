@@ -136,15 +136,18 @@ export default function GroupDetail() {
 
   // Load Minimize Transactions preference from AsyncStorage on mount
   React.useEffect(() => {
-    AsyncStorage.getItem(`minimize_txn_${groupId}`).then((val) => {
-      // Default to true (minimized) unless explicitly set to false
-      setMinimizeTxns(val === null ? true : val === "true");
-    });
+    AsyncStorage.getItem(`minimize_txn_${groupId}`)
+      .then((val) => {
+        setMinimizeTxns(val === null ? true : val === "true");
+      })
+      .catch(() => { /* fallback to default true */ });
   }, [groupId]);
 
   const toggleMinimizeTxns = async (val: boolean) => {
     setMinimizeTxns(val);
-    await AsyncStorage.setItem(`minimize_txn_${groupId}`, val ? "true" : "false");
+    try {
+      await AsyncStorage.setItem(`minimize_txn_${groupId}`, val ? "true" : "false");
+    } catch { /* ignore storage errors */ }
     showToast(val
       ? "Minimize Transactions ON — fewest payments to settle up ⚡"
       : "Showing exact pairwise debts"
@@ -361,23 +364,23 @@ export default function GroupDetail() {
       {displayTxns.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={{ fontSize: r.fs(48), marginBottom: r.s(12) }}>🎉</Text>
-          <Text style={[styles.emptyTitle, { fontSize: r.fs(18) }]}>All settled up!</Text>
-          <Text style={[styles.emptySub, { fontSize: r.fs(13) }]}>No payments needed right now.</Text>
+          <Text style={[styles.emptyTitle, { fontSize: r.fs(18), color: colors.text }]}>All settled up!</Text>
+          <Text style={[styles.emptySub, { fontSize: r.fs(13), color: colors.textSecondary }]}>No payments needed right now.</Text>
         </View>
       ) : (
         displayTxns.map((t, i) => {
           const isMyTxn = !!(currentUserId && (t.fromUserId === currentUserId || t.toUserId === currentUserId));
           const toUpiId = getMemberUpiId(t.toUserId);
           return (
-            <View key={i} style={[styles.txnCard, isMyTxn && styles.txnCardMine, { borderRadius: r.s(16), padding: r.s(14), marginBottom: r.s(10) }]}>
+            <View key={i} style={[styles.txnCard, isMyTxn && styles.txnCardMine, { borderRadius: r.s(16), padding: r.s(14), marginBottom: r.s(10), backgroundColor: isMyTxn ? undefined : colors.surface, borderColor: isMyTxn ? undefined : colors.border }]}>
               <View style={styles.txnRow}>
                 <View style={[styles.txnAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(18) }]}>
                   <Text style={{ fontWeight: "700", fontSize: r.fs(14), color: "#b91c1c" }}>{getMemberName(t.fromUserId).charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={styles.txnMiddle}>
-                  <Text style={[styles.txnFrom, { fontSize: r.fs(13) }]}>{getMemberName(t.fromUserId)}</Text>
+                  <Text style={[styles.txnFrom, { fontSize: r.fs(13), color: colors.text }]}>{getMemberName(t.fromUserId)}</Text>
                   <Text style={[styles.txnArrow, { fontSize: r.fs(12) }]}>pays {sym}{t.amount.toFixed(0)} →</Text>
-                  <Text style={[styles.txnTo, { fontSize: r.fs(13) }]}>{getMemberName(t.toUserId)}</Text>
+                  <Text style={[styles.txnTo, { fontSize: r.fs(13), color: colors.text }]}>{getMemberName(t.toUserId)}</Text>
                 </View>
                 <View style={[styles.txnAvatar, { width: r.s(36), height: r.s(36), borderRadius: r.s(18), backgroundColor: "#dcfce7" }]}>
                   <Text style={{ fontWeight: "700", fontSize: r.fs(14), color: "#166534" }}>{getMemberName(t.toUserId).charAt(0).toUpperCase()}</Text>
@@ -390,7 +393,7 @@ export default function GroupDetail() {
                       <Text style={[styles.payBtnText, { fontSize: r.fs(14) }]}>✓ Mark as Paid</Text>
                     </TouchableOpacity>
                     {!toUpiId && (
-                      <Text style={{ fontSize: r.fs(11), color: "#94a3b8", textAlign: "center", paddingVertical: r.s(4) }}>
+                      <Text style={{ fontSize: r.fs(11), color: colors.textSecondary, textAlign: "center", paddingVertical: r.s(4) }}>
                         💳 Ask {getMemberName(t.toUserId)} to add their UPI ID for quick pay
                       </Text>
                     )}
@@ -452,17 +455,17 @@ export default function GroupDetail() {
           );
         })
       )}
-      <Text style={[styles.sectionLabel, { fontSize: r.fs(11) }]}>MEMBER BALANCES</Text>
+      <Text style={[styles.sectionLabel, { fontSize: r.fs(11), color: colors.textSecondary }]}>MEMBER BALANCES</Text>
       {group.members.map((m) => {
         // Use settlement-aware balance from the API
         const bal = apiBalances[m.userId] || 0;
-        const color = bal > 0 ? GREEN : bal < 0 ? RED : "#64748b";
+        const color = bal > 0 ? GREEN : bal < 0 ? RED : colors.textSecondary;
         return (
-          <View key={m.userId} style={[styles.memberRow, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8) }]}>
+          <View key={m.userId} style={[styles.memberRow, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface }]}>
             <View style={[styles.memberAvatar, { width: r.s(38), height: r.s(38), borderRadius: r.s(12), marginRight: r.s(12) }]}>
               <Text style={{ fontWeight: "700", fontSize: r.fs(14), color: PURPLE }}>{m.user.name.charAt(0).toUpperCase()}</Text>
             </View>
-            <Text style={[styles.memberName, { fontSize: r.fs(14) }]}>{m.user.name}</Text>
+            <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{m.user.name}</Text>
             {m.user.upiId && <Text style={[styles.upiChip, { fontSize: r.fs(10) }]}>UPI</Text>}
             <Text style={[styles.memberBal, { fontSize: r.fs(14), color }]}>
               {bal > 0 ? "+" : ""}{sym}{Math.abs(bal).toFixed(0)}
@@ -476,17 +479,17 @@ export default function GroupDetail() {
   const renderExpensesPanel = () => (
     <>
       {group.expenses.length > 2 && (
-        <View style={[styles.searchWrap, { borderRadius: r.s(12), marginBottom: r.s(12) }]}>
+        <View style={[styles.searchWrap, { borderRadius: r.s(12), marginBottom: r.s(12), backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
-            style={[styles.searchInput, { padding: r.s(12), fontSize: r.fs(14) }]}
+            style={[styles.searchInput, { padding: r.s(12), fontSize: r.fs(14), color: colors.text }]}
             placeholder="🔍 Search expenses..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.textSecondary}
             value={search}
             onChangeText={setSearch}
           />
           {!!search && (
             <TouchableOpacity onPress={() => setSearch("")} style={{ paddingHorizontal: r.s(12) }}>
-              <Text style={{ fontSize: r.fs(14), color: "#94a3b8", fontWeight: "700" }}>✕</Text>
+              <Text style={{ fontSize: r.fs(14), color: colors.textSecondary, fontWeight: "700" }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -495,16 +498,16 @@ export default function GroupDetail() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: r.s(8), paddingBottom: r.s(12) }}>
           <TouchableOpacity
-            style={[styles.filterChip, !categoryFilter && styles.filterChipActive, { paddingHorizontal: r.s(12), paddingVertical: r.s(7), borderRadius: r.s(20) }]}
+            style={[styles.filterChip, !categoryFilter && styles.filterChipActive, { paddingHorizontal: r.s(12), paddingVertical: r.s(7), borderRadius: r.s(20), backgroundColor: !categoryFilter ? undefined : colors.surface, borderColor: !categoryFilter ? undefined : colors.border }]}
             onPress={() => setCategoryFilter(null)}>
-            <Text style={[styles.filterChipText, { fontSize: r.fs(12) }, !categoryFilter && styles.filterChipTextActive]}>All</Text>
+            <Text style={[styles.filterChipText, { fontSize: r.fs(12), color: !categoryFilter ? undefined : colors.textSecondary }, !categoryFilter && styles.filterChipTextActive]}>All</Text>
           </TouchableOpacity>
           {presentCategories.map((cat) => (
             <TouchableOpacity key={cat}
-              style={[styles.filterChip, categoryFilter === cat && styles.filterChipActive, { paddingHorizontal: r.s(12), paddingVertical: r.s(7), borderRadius: r.s(20) }]}
+              style={[styles.filterChip, categoryFilter === cat && styles.filterChipActive, { paddingHorizontal: r.s(12), paddingVertical: r.s(7), borderRadius: r.s(20), backgroundColor: categoryFilter === cat ? undefined : colors.surface, borderColor: categoryFilter === cat ? undefined : colors.border }]}
               onPress={() => setCategoryFilter(categoryFilter === cat ? null : cat)}>
               <Text style={{ fontSize: r.fs(13) }}>{CATEGORY_EMOJIS[cat] || "💡"}</Text>
-              <Text style={[styles.filterChipText, { fontSize: r.fs(12) }, categoryFilter === cat && styles.filterChipTextActive]}>
+              <Text style={[styles.filterChipText, { fontSize: r.fs(12), color: categoryFilter === cat ? undefined : colors.textSecondary }, categoryFilter === cat && styles.filterChipTextActive]}>
                 {CATEGORY_LABELS[cat] || cat}
               </Text>
             </TouchableOpacity>
@@ -514,8 +517,8 @@ export default function GroupDetail() {
       {filteredExpenses.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={{ fontSize: r.fs(48), marginBottom: r.s(12) }}>{search || categoryFilter ? "🔍" : "🧾"}</Text>
-          <Text style={[styles.emptyTitle, { fontSize: r.fs(18) }]}>{search || categoryFilter ? "No matches" : "No expenses yet"}</Text>
-          <Text style={[styles.emptySub, { fontSize: r.fs(13) }]}>{search || categoryFilter ? "Try a different search." : "Tap + Add to record your first expense."}</Text>
+          <Text style={[styles.emptyTitle, { fontSize: r.fs(18), color: colors.text }]}>{search || categoryFilter ? "No matches" : "No expenses yet"}</Text>
+          <Text style={[styles.emptySub, { fontSize: r.fs(13), color: colors.textSecondary }]}>{search || categoryFilter ? "Try a different search." : "Tap + Add to record your first expense."}</Text>
         </View>
       ) : (
         filteredExpenses.map((e) => {
@@ -524,21 +527,21 @@ export default function GroupDetail() {
           const emoji = CATEGORY_EMOJIS[e.category || "other"] || "💡";
           const catColor = CATEGORY_COLORS[e.category || "other"] || PURPLE;
           return (
-            <View key={e.id} style={[styles.expCard, { borderRadius: r.s(14), padding: r.s(12), marginBottom: r.s(10), borderLeftWidth: r.s(4), borderLeftColor: catColor }]}>
+            <View key={e.id} style={[styles.expCard, { borderRadius: r.s(14), padding: r.s(12), marginBottom: r.s(10), borderLeftWidth: r.s(4), borderLeftColor: catColor, backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={[styles.expEmoji, { width: r.s(44), height: r.s(44), borderRadius: r.s(12), marginRight: r.s(12), backgroundColor: catColor + "18" }]}>
                 <Text style={{ fontSize: r.fs(20) }}>{emoji}</Text>
               </View>
               <View style={styles.expBody}>
-                <Text style={[styles.expDesc, { fontSize: r.fs(14) }]}>{e.description}</Text>
-                {e.notes ? <Text style={[styles.expNotes, { fontSize: r.fs(11) }]} numberOfLines={1}>{e.notes}</Text> : null}
-                <Text style={[styles.expMeta, { fontSize: r.fs(12) }]}>
+                <Text style={[styles.expDesc, { fontSize: r.fs(14), color: colors.text }]}>{e.description}</Text>
+                {e.notes ? <Text style={[styles.expNotes, { fontSize: r.fs(11), color: colors.textSecondary }]} numberOfLines={1}>{e.notes}</Text> : null}
+                <Text style={[styles.expMeta, { fontSize: r.fs(12), color: colors.textSecondary }]}>
                   {e.paidBy.name} paid · {e.createdAt
                     ? new Date(e.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
                     : ""}
                 </Text>
               </View>
               <View style={styles.expRight}>
-                <Text style={[styles.expAmount, { fontSize: r.fs(15) }]}>{sym}{e.amount.toFixed(0)}</Text>
+                <Text style={[styles.expAmount, { fontSize: r.fs(15), color: colors.text }]}>{sym}{e.amount.toFixed(0)}</Text>
                 {currentUserId && (
                   <View style={[styles.expBadge, { borderRadius: r.s(10), paddingHorizontal: r.s(8), paddingVertical: r.s(2), backgroundColor: iPaid ? "#dcfce7" : "#fff1f2" }]}>
                     <Text style={[styles.expBadgeText, { fontSize: r.fs(11), color: iPaid ? GREEN : RED }]}>
@@ -547,11 +550,11 @@ export default function GroupDetail() {
                   </View>
                 )}
                 <View style={[styles.expActions, { gap: r.s(4), marginTop: r.s(4) }]}>
-                  <TouchableOpacity style={[styles.expActionBtn, { width: r.s(30), height: r.s(30), borderRadius: r.s(8) }]}
+                  <TouchableOpacity style={[styles.expActionBtn, { width: r.s(30), height: r.s(30), borderRadius: r.s(8), backgroundColor: colors.card }]}
                     onPress={() => router.push(`/${groupId}/edit-expense?expenseId=${e.id}`)}>
                     <Text style={{ fontSize: r.fs(14) }}>✏️</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.expActionBtn, { width: r.s(30), height: r.s(30), borderRadius: r.s(8) }]} onPress={() => handleDuplicate(e)}>
+                  <TouchableOpacity style={[styles.expActionBtn, { width: r.s(30), height: r.s(30), borderRadius: r.s(8), backgroundColor: colors.card }]} onPress={() => handleDuplicate(e)}>
                     <Text style={{ fontSize: r.fs(14) }}>📋</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.expActionBtn, { width: r.s(30), height: r.s(30), borderRadius: r.s(8), backgroundColor: "#fff1f2" }]}
@@ -572,25 +575,25 @@ export default function GroupDetail() {
       {activityItems.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={{ fontSize: r.fs(48), marginBottom: r.s(12) }}>📋</Text>
-          <Text style={[styles.emptyTitle, { fontSize: r.fs(18) }]}>No activity yet</Text>
-          <Text style={[styles.emptySub, { fontSize: r.fs(13) }]}>Expenses and settlements will appear here.</Text>
+          <Text style={[styles.emptyTitle, { fontSize: r.fs(18), color: colors.text }]}>No activity yet</Text>
+          <Text style={[styles.emptySub, { fontSize: r.fs(13), color: colors.textSecondary }]}>Expenses and settlements will appear here.</Text>
         </View>
       ) : (
         activityItems.map((item, i) => (
           <View key={i} style={[styles.actItem, { marginBottom: r.s(16), gap: r.s(12) }]}>
             <View style={[styles.actDot, { width: r.s(12), height: r.s(12), borderRadius: r.s(6), marginTop: r.s(4), backgroundColor: item.type === "expense" ? PURPLE : GREEN }]} />
-            <View style={[styles.actContent, { paddingLeft: r.s(12), paddingBottom: r.s(8) }]}>
+            <View style={[styles.actContent, { paddingLeft: r.s(12), paddingBottom: r.s(8), borderLeftColor: colors.border }]}>
               {item.type === "expense" ? (
                 <>
-                  <Text style={[styles.actTitle, { fontSize: r.fs(14) }]}>
+                  <Text style={[styles.actTitle, { fontSize: r.fs(14), color: colors.text }]}>
                     {CATEGORY_EMOJIS[item.category || "other"] || "💡"} {item.description}
                   </Text>
-                  <Text style={[styles.actSub, { fontSize: r.fs(13) }]}>{item.paidByName} paid · {sym}{item.amount.toFixed(0)}</Text>
+                  <Text style={[styles.actSub, { fontSize: r.fs(13), color: colors.textSecondary }]}>{item.paidByName} paid · {sym}{item.amount.toFixed(0)}</Text>
                 </>
               ) : (
                 <>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <Text style={[styles.actTitle, { fontSize: r.fs(14) }]}>💸 Settlement</Text>
+                    <Text style={[styles.actTitle, { fontSize: r.fs(14), color: colors.text }]}>💸 Settlement</Text>
                     {currentUserId && item.settlementId &&
                       (item.fromUserId === currentUserId || item.toUserId === currentUserId) && (
                         <TouchableOpacity
@@ -602,10 +605,10 @@ export default function GroupDetail() {
                         </TouchableOpacity>
                       )}
                   </View>
-                  <Text style={[styles.actSub, { fontSize: r.fs(13) }]}>{item.fromName} paid {item.toName} · {sym}{item.amount.toFixed(0)}</Text>
+                  <Text style={[styles.actSub, { fontSize: r.fs(13), color: colors.textSecondary }]}>{item.fromName} paid {item.toName} · {sym}{item.amount.toFixed(0)}</Text>
                 </>
               )}
-              <Text style={[styles.actDate, { fontSize: r.fs(11) }]}>
+              <Text style={[styles.actDate, { fontSize: r.fs(11), color: colors.textSecondary }]}>
                 {new Date(item.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
               </Text>
             </View>
@@ -644,15 +647,15 @@ export default function GroupDetail() {
         </View>
 
         {/* ── GROUP BALANCE CARD ── */}
-        <View style={{ backgroundColor: "#EDE9FE", borderRadius: 20, margin: 16, padding: 20 }}>
+        <View style={{ backgroundColor: colors.purpleLight, borderRadius: 20, margin: 16, padding: 20 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", color: PURPLE, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 2 }}>
             {group.emoji ? `${group.emoji} ` : ""}{group.name}
           </Text>
-          <Text style={{ fontSize: 12, color: "#8B5CF6", marginBottom: 10 }}>
+          <Text style={{ fontSize: 12, color: PURPLE, marginBottom: 10 }}>
             {group.members.length} members · {group.expenses.length} expenses
           </Text>
           <Text style={{ fontSize: 11, fontWeight: "700", color: PURPLE, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>Current Balance</Text>
-          <Text style={{ fontSize: 36, fontWeight: "900", color: "#1a0533", letterSpacing: -1, marginBottom: 4 }}>
+          <Text style={{ fontSize: 36, fontWeight: "900", color: colors.text, letterSpacing: -1, marginBottom: 4 }}>
             {sym}{Math.abs(myBalance).toFixed(0)}
           </Text>
           {myBalance !== 0 && (
@@ -664,31 +667,31 @@ export default function GroupDetail() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <View style={{ flexDirection: "row" }}>
               {group.members.slice(0, 4).map((m, i) => (
-                <View key={m.userId} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: [PURPLE, "#A78BFA", "#6D28D9", "#8B5CF6"][i % 4], borderWidth: 1.5, borderColor: "#EDE9FE", alignItems: "center", justifyContent: "center", marginLeft: i === 0 ? 0 : -8, zIndex: 4 - i }}>
+                <View key={m.userId} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: [PURPLE, "#A78BFA", "#6D28D9", "#8B5CF6"][i % 4], borderWidth: 1.5, borderColor: colors.purpleLight, alignItems: "center", justifyContent: "center", marginLeft: i === 0 ? 0 : -8, zIndex: 4 - i }}>
                   <Text style={{ fontSize: 11, fontWeight: "700", color: "white" }}>{m.user.name.charAt(0).toUpperCase()}</Text>
                 </View>
               ))}
               {group.members.length > 4 && (
-                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "white", borderWidth: 1.5, borderColor: "#EDE9FE", alignItems: "center", justifyContent: "center", marginLeft: -8 }}>
+                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.purpleLight, alignItems: "center", justifyContent: "center", marginLeft: -8 }}>
                   <Text style={{ fontSize: 10, fontWeight: "700", color: PURPLE }}>+{group.members.length - 4}</Text>
                 </View>
               )}
             </View>
-            <Text style={{ fontSize: 12, color: "#8B5CF6" }}>{group.members.length} members</Text>
+            <Text style={{ fontSize: 12, color: PURPLE }}>{group.members.length} members</Text>
           </View>
           {/* Minimize Transactions toggle */}
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: minimizeTxns ? "#F3F0FF" : "rgba(255,255,255,0.5)", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12, borderWidth: 1, borderColor: minimizeTxns ? PURPLE_LIGHT : "rgba(255,255,255,0.3)" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: minimizeTxns ? colors.purpleLight : colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12, borderWidth: 1, borderColor: minimizeTxns ? PURPLE_LIGHT : colors.border }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Text style={{ fontSize: 15 }}>⚡</Text>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#1a0533" }}>Minimize Transactions</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>Minimize Transactions</Text>
                 {minimizeTxns && (
                   <View style={{ backgroundColor: PURPLE, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 10, fontWeight: "700", color: "white" }}>ON</Text>
                   </View>
                 )}
               </View>
-              <Text style={{ fontSize: 11, color: "#8B5CF6", marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: PURPLE, marginTop: 2 }}>
                 {minimizeTxns
                   ? "Fewest payments needed to settle all debts"
                   : "Showing exact debts from each expense"}
@@ -697,7 +700,7 @@ export default function GroupDetail() {
             <Switch
               value={minimizeTxns}
               onValueChange={toggleMinimizeTxns}
-              trackColor={{ false: "#e2e8f0", true: PURPLE }}
+              trackColor={{ false: colors.border, true: PURPLE }}
               thumbColor="#fff"
             />
           </View>
@@ -739,12 +742,12 @@ export default function GroupDetail() {
         {/* ── STATS ROW ── */}
         <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16, marginBottom: 16 }}>
           {[
-            { label: "Spent", value: `${sym}${totalExpenses.toFixed(0)}`, color: "#0f172a" },
+            { label: "Spent", value: `${sym}${totalExpenses.toFixed(0)}`, color: colors.text },
             { label: "Members", value: `${group.members.length}`, color: PURPLE },
             { label: "Expenses", value: `${group.expenses.length}`, color: "#16a34a" },
           ].map(stat => (
-            <View key={stat.label} style={{ flex: 1, backgroundColor: "white", borderRadius: 14, padding: 12, alignItems: "center", shadowColor: PURPLE, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 }}>
-              <Text style={{ fontSize: 10, fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{stat.label}</Text>
+            <View key={stat.label} style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, padding: 12, alignItems: "center", shadowColor: PURPLE, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 }}>
+              <Text style={{ fontSize: 10, fontWeight: "700", color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{stat.label}</Text>
               <Text style={{ fontSize: 16, fontWeight: "900", color: stat.color }}>{stat.value}</Text>
             </View>
           ))}
@@ -755,22 +758,23 @@ export default function GroupDetail() {
           <View style={[styles.chartCard, {
             marginHorizontal: hPad, marginTop: r.s(16),
             borderRadius: r.s(16), padding: r.s(16),
+            backgroundColor: colors.surface,
           }]}>
-            <Text style={[styles.chartTitle, { fontSize: r.fs(13), marginBottom: r.s(12) }]}>📊 Spending by Category</Text>
+            <Text style={[styles.chartTitle, { fontSize: r.fs(13), marginBottom: r.s(12), color: colors.text }]}>📊 Spending by Category</Text>
             {chartData.map(([cat, amt]) => (
               <View key={cat} style={[styles.chartRow, { marginBottom: r.s(10), gap: r.s(8) }]}>
                 <Text style={{ fontSize: r.fs(16), width: r.s(24) }}>{CATEGORY_EMOJIS[cat] || "💡"}</Text>
                 <View style={{ flex: 1 }}>
-                  <View style={[styles.chartBarWrap, { height: r.s(10), borderRadius: r.s(5) }]}>
+                  <View style={[styles.chartBarWrap, { height: r.s(10), borderRadius: r.s(5), backgroundColor: colors.border }]}>
                     <View style={[styles.chartBar, {
                       height: r.s(10), borderRadius: r.s(5),
                       width: `${Math.round((amt / maxCatAmt) * 100)}%` as any,
                       backgroundColor: CATEGORY_COLORS[cat] || PURPLE,
                     }]} />
                   </View>
-                  <Text style={[styles.chartCatLabel, { fontSize: r.fs(10) }]}>{CATEGORY_LABELS[cat] || cat}</Text>
+                  <Text style={[styles.chartCatLabel, { fontSize: r.fs(10), color: colors.textSecondary }]}>{CATEGORY_LABELS[cat] || cat}</Text>
                 </View>
-                <Text style={[styles.chartAmt, { fontSize: r.fs(12), width: r.s(60) }]}>{sym}{amt.toFixed(0)}</Text>
+                <Text style={[styles.chartAmt, { fontSize: r.fs(12), width: r.s(60), color: colors.textSecondary }]}>{sym}{amt.toFixed(0)}</Text>
               </View>
             ))}
           </View>
@@ -780,12 +784,12 @@ export default function GroupDetail() {
         {r.isTablet ? (
           <>
             {/* Tabs for activity on tablet */}
-            <View style={[styles.tabRow, { marginHorizontal: hPad, marginTop: r.s(16), borderRadius: r.s(14), padding: r.s(4) }]}>
+            <View style={[styles.tabRow, { marginHorizontal: hPad, marginTop: r.s(16), borderRadius: r.s(14), padding: r.s(4), backgroundColor: colors.purpleLight }]}>
               {(["balances", "expenses", "activity"] as TabType[]).map((tab) => (
                 <TouchableOpacity key={tab}
                   style={[styles.tab, { paddingVertical: r.s(10), borderRadius: r.s(22) }, activeTab === tab && styles.tabActive]}
                   onPress={() => { setActiveTab(tab); if (tab === "activity") fetchActivity(); }}>
-                  <Text style={[styles.tabText, { fontSize: r.fs(12) }, activeTab === tab && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, { fontSize: r.fs(12), color: colors.purple ?? PURPLE }, activeTab === tab && styles.tabTextActive]}>
                     {tab === "balances" ? "⚖️ Settle" : tab === "expenses" ? "🧾 Spend" : "📋 Activity"}
                   </Text>
                 </TouchableOpacity>
@@ -806,12 +810,12 @@ export default function GroupDetail() {
         ) : (
           /* ── PHONE: tab-based layout ── */
           <>
-            <View style={[styles.tabRow, { marginHorizontal: hPad, marginTop: r.s(16), borderRadius: r.s(14), padding: r.s(4) }]}>
+            <View style={[styles.tabRow, { marginHorizontal: hPad, marginTop: r.s(16), borderRadius: r.s(14), padding: r.s(4), backgroundColor: colors.purpleLight }]}>
               {(["balances", "expenses", "activity"] as TabType[]).map((tab) => (
                 <TouchableOpacity key={tab}
                   style={[styles.tab, { paddingVertical: r.s(10), borderRadius: r.s(10) }, activeTab === tab && styles.tabActive]}
                   onPress={() => { setActiveTab(tab); if (tab === "activity") fetchActivity(); }}>
-                  <Text style={[styles.tabText, { fontSize: r.fs(11) }, activeTab === tab && styles.tabTextActive]}>
+                  <Text style={[styles.tabText, { fontSize: r.fs(11), color: colors.purple ?? PURPLE }, activeTab === tab && styles.tabTextActive]}>
                     {tab === "balances" ? "⚖️ Settle" : tab === "expenses" ? "🧾 Spend" : "📋 Activity"}
                   </Text>
                 </TouchableOpacity>
@@ -847,21 +851,22 @@ export default function GroupDetail() {
             maxWidth: r.isTablet ? 480 : undefined,
             width: r.isTablet ? "100%" : undefined,
             alignSelf: r.isTablet ? "center" : undefined,
+            backgroundColor: colors.surface,
           }]}>
-            <Text style={[styles.modalTitle, { fontSize: r.fs(20), marginBottom: r.s(12) }]}>Confirm Payment</Text>
+            <Text style={[styles.modalTitle, { fontSize: r.fs(20), marginBottom: r.s(12), color: colors.text }]}>Confirm Payment</Text>
             {settleModal && (
               <>
-                <Text style={[styles.modalBody, { fontSize: r.fs(15), marginBottom: r.s(6) }]}>
+                <Text style={[styles.modalBody, { fontSize: r.fs(15), marginBottom: r.s(6), color: colors.text }]}>
                   You're marking{" "}
                   <Text style={{ fontWeight: "800" }}>{sym}{settleModal.amount.toFixed(0)}</Text>
                   {" "}paid to{" "}
                   <Text style={{ fontWeight: "800" }}>{getMemberName(settleModal.toUserId)}</Text>.
                 </Text>
-                <Text style={[styles.modalSub, { fontSize: r.fs(13), marginBottom: r.s(24) }]}>This will update the group balances.</Text>
+                <Text style={[styles.modalSub, { fontSize: r.fs(13), marginBottom: r.s(24), color: colors.textSecondary }]}>This will update the group balances.</Text>
                 <View style={[styles.modalBtns, { gap: r.s(12) }]}>
-                  <TouchableOpacity style={[styles.modalBtn, { paddingVertical: r.s(14), borderRadius: r.s(14), backgroundColor: "#f1f5f9" }]}
+                  <TouchableOpacity style={[styles.modalBtn, { paddingVertical: r.s(14), borderRadius: r.s(14), backgroundColor: colors.card }]}
                     onPress={() => setSettleModal(null)}>
-                    <Text style={[styles.modalBtnText, { fontSize: r.fs(15), color: "#475569" }]}>Cancel</Text>
+                    <Text style={[styles.modalBtnText, { fontSize: r.fs(15), color: colors.textSecondary }]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.modalBtn, { paddingVertical: r.s(14), borderRadius: r.s(14), backgroundColor: PURPLE }]}
                     onPress={handleSettle} disabled={settling}>

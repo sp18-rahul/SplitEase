@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
-import { users } from "@/api/client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ThemePreference = "light" | "dark" | "system";
 
@@ -11,6 +11,7 @@ interface ThemeContextType {
   colors: {
     background: string;
     surface: string;
+    card: string;
     text: string;
     textSecondary: string;
     border: string;
@@ -21,67 +22,54 @@ interface ThemeContextType {
   };
 }
 
+const STORAGE_KEY = "app_theme_preference";
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemePreference>("system");
-  const [isDark, setIsDark] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const systemColorScheme = useColorScheme();
 
-  // Load saved theme preference
+  const isDark =
+    theme === "dark"
+      ? true
+      : theme === "light"
+      ? false
+      : systemColorScheme === "dark";
+
   useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const res = await users.getProfile();
-        const savedTheme = res.data.theme || "system";
-        setThemeState(savedTheme);
-      } catch {
-        // Fallback to system
-        setThemeState("system");
-      }
-    };
-    loadTheme();
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((local) => {
+        if (local === "light" || local === "dark" || local === "system") {
+          setThemeState(local);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
-  // Update isDark based on theme and system preference
-  useEffect(() => {
-    let shouldBeDark = false;
-
-    if (theme === "dark") {
-      shouldBeDark = true;
-    } else if (theme === "light") {
-      shouldBeDark = false;
-    } else {
-      // "system" - use device preference
-      shouldBeDark = systemColorScheme === "dark";
-    }
-
-    setIsDark(shouldBeDark);
-  }, [theme, systemColorScheme]);
-
   const setTheme = async (newTheme: ThemePreference) => {
+    setThemeState(newTheme);
     try {
-      await users.updateTheme(newTheme);
-      setThemeState(newTheme);
-    } catch (error) {
-      console.error("Failed to update theme:", error);
-    }
+      await AsyncStorage.setItem(STORAGE_KEY, newTheme);
+    } catch { /* ignore */ }
   };
 
   const colors = {
-    // Light/Dark backgrounds
-    background: isDark ? "#0f172a" : "#F8F5FF",
-    surface: isDark ? "#1e293b" : "#ffffff",
-    text: isDark ? "#f8f9ff" : "#0f172a",
-    textSecondary: isDark ? "#94a3b8" : "#64748b",
-    border: isDark ? "#334155" : "#e2e8f0",
-    // Brand colors
+    background: isDark ? "#0F0D14" : "#F8F5FF",
+    surface:    isDark ? "#1A1625" : "#FFFFFF",
+    card:       isDark ? "#221E30" : "#FFFFFF",
+    text:       isDark ? "#F1EEFF" : "#1D1A24",
+    textSecondary: isDark ? "#8B83A3" : "#7B7487",
+    border:     isDark ? "#2E2842" : "#F0EEFF",
     purple: "#7C3AED",
-    purpleLight: "#EDE9FE",
-    // Semantic colors
-    success: isDark ? "#86efac" : "#22c55e",
-    danger: isDark ? "#fca5a5" : "#e11d48",
+    purpleLight: isDark ? "#2D1F5E" : "#EDE9FE",
+    success: isDark ? "#86efac" : "#16a34a",
+    danger:  isDark ? "#fca5a5" : "#e11d48",
   };
+
+  if (!loaded) return null;
 
   return (
     <ThemeContext.Provider value={{ theme, isDark, setTheme, colors }}>
