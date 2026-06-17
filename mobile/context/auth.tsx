@@ -23,12 +23,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore session on app start
+  // Restore session on app start (non-blocking)
   useEffect(() => {
+    // Don't block UI - set loading to false immediately
+    setIsLoading(false);
+
+    // Restore session in background
     const restoreSession = async () => {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
         const res = await fetch(`${API_URL}/api/users/profile`, {
           headers: { "Content-Type": "application/json" },
@@ -41,10 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser({ userId: data.id, name: data.name, email: data.email });
         }
       } catch (error) {
-        // Silent fail - no active session or timeout
-        console.log("Session restore timeout or error - continuing as guest");
-      } finally {
-        setIsLoading(false);
+        // Silent fail - user will see login screen
       }
     };
     restoreSession();
