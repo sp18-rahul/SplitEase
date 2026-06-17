@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl, ScrollView, Alert,
+  ActivityIndicator, RefreshControl, ScrollView, Alert, Modal, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
@@ -80,6 +80,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [showGroupPicker, setShowGroupPicker] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
 
   const fetchGroups = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -296,13 +298,8 @@ export default function HomeScreen() {
             if (groupsList.length === 1) {
               router.push(`/${groupsList[0].id}/add-expense`);
             } else {
-              Alert.alert("Select Group", "Which group?", [
-                ...groupsList.map(g => ({
-                  text: g.name,
-                  onPress: () => router.push(`/${g.id}/add-expense`),
-                })),
-                { text: "Cancel", style: "cancel" },
-              ]);
+              setGroupSearch("");
+              setShowGroupPicker(true);
             }
           }}
           activeOpacity={0.85}
@@ -310,6 +307,102 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 26, color: "white", fontWeight: "300", lineHeight: 30 }}>＋</Text>
         </TouchableOpacity>
       )}
+
+      {/* ── GROUP PICKER BOTTOM SHEET ── */}
+      <Modal
+        visible={showGroupPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGroupPicker(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+          activeOpacity={1}
+          onPress={() => setShowGroupPicker(false)}
+        />
+        <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom + 16, maxHeight: "75%" }}>
+          {/* Handle */}
+          <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 12 }}>
+            <View>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: colors.text }}>Add Expense</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>Select a group</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowGroupPicker(false)}
+              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ fontSize: 14, color: colors.textSecondary }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search */}
+          {groupsList.length > 5 && (
+            <View style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 20, marginBottom: 12, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ fontSize: 14, marginRight: 8 }}>🔍</Text>
+              <TextInput
+                style={{ flex: 1, fontSize: 14, color: colors.text, padding: 0 }}
+                placeholder="Search groups..."
+                placeholderTextColor={colors.textSecondary}
+                value={groupSearch}
+                onChangeText={setGroupSearch}
+                autoCapitalize="none"
+              />
+            </View>
+          )}
+
+          {/* Group list */}
+          <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 16 }}>
+            {groupsList
+              .filter(g => !groupSearch.trim() || g.name.toLowerCase().includes(groupSearch.toLowerCase()))
+              .map(g => {
+                const balance = getBalance(g);
+                const isOwed = balance > 0.01;
+                const isOwing = balance < -0.01;
+                const currency = CURRENCY_SYMBOLS[g.currency || "INR"] || "₹";
+                return (
+                  <TouchableOpacity
+                    key={g.id}
+                    onPress={() => { setShowGroupPicker(false); router.push(`/${g.id}/add-expense`); }}
+                    activeOpacity={0.75}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    {/* Emoji */}
+                    <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: colors.purpleLight, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 22 }}>{g.emoji || "👥"}</Text>
+                    </View>
+                    {/* Name + members */}
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }} numberOfLines={1}>{g.name}</Text>
+                      <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                        {g.members.length} members
+                      </Text>
+                    </View>
+                    {/* Balance */}
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: isOwed ? PURPLE : isOwing ? "#E11D48" : colors.textSecondary }}>
+                        {isOwed ? "+" : isOwing ? "-" : ""}{currency}{Math.abs(balance).toFixed(0)}
+                      </Text>
+                      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 1 }}>
+                        {isOwed ? "owed to you" : isOwing ? "you owe" : "settled"}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 18, color: colors.textSecondary }}>›</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            {groupsList.filter(g => !groupSearch.trim() || g.name.toLowerCase().includes(groupSearch.toLowerCase())).length === 0 && (
+              <View style={{ alignItems: "center", paddingVertical: 32 }}>
+                <Text style={{ fontSize: 14, color: colors.textSecondary }}>No groups match "{groupSearch}"</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* ── BOTTOM TAB BAR ── */}
       <View style={[styles.tabBar, { paddingBottom: insets.bottom + 4, backgroundColor: colors.surface, borderTopColor: colors.border }]}>

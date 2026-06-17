@@ -46,7 +46,7 @@ interface Expense {
 }
 interface Group {
   id: number; name: string; currency?: string; emoji?: string;
-  members: { userId: number; user: Member }[];
+  members: { id: number; userId: number; user: Member }[];
   expenses: Expense[];
 }
 interface Transaction { fromUserId: number; toUserId: number; amount: number; }
@@ -133,6 +133,14 @@ export default function GroupDetail() {
   const [remindingSettlementId, setRemindingSettlementId] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [minimizeTxns, setMinimizeTxns] = useState(true);
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renamingSaving, setRenamingSaving] = useState(false);
+  const [addMemberEmail, setAddMemberEmail] = useState("");
+  const [addMemberName, setAddMemberName] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [addMemberMsg, setAddMemberMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
 
   // Load Minimize Transactions preference from AsyncStorage on mount
   React.useEffect(() => {
@@ -272,6 +280,75 @@ export default function GroupDetail() {
       const msg = error.response?.data?.error || error.message || "Failed to duplicate expense";
       Alert.alert("Error", msg);
     }
+  };
+
+  const handleRenameGroup = async () => {
+    if (!renameValue.trim() || !group) return;
+    setRenamingSaving(true);
+    try {
+      await groups.update(groupId, { name: renameValue.trim(), emoji: group.emoji });
+      showToast("Group renamed! ✏️");
+      setShowSettingsSheet(false);
+      fetchData();
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data?.error || "Failed to rename group");
+    } finally {
+      setRenamingSaving(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!addMemberEmail.trim()) return;
+    setAddingMember(true);
+    setAddMemberMsg(null);
+    try {
+      const res = await groups.addMemberByEmail(groupId, {
+        email: addMemberEmail.trim().toLowerCase(),
+        name: addMemberName.trim() || undefined,
+      });
+      const isNew = res.data?.isNewUser;
+      setAddMemberMsg({
+        type: "success",
+        text: isNew
+          ? `✉️ Account created & invite sent to ${addMemberEmail}!`
+          : `✉️ ${res.data?.user?.name || addMemberEmail} added to group!`,
+      });
+      setAddMemberEmail("");
+      setAddMemberName("");
+      fetchData();
+    } catch (error: any) {
+      setAddMemberMsg({
+        type: "error",
+        text: error.response?.data?.error || "Failed to add member",
+      });
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = (memberId: number, memberName: string) => {
+    Alert.alert(
+      "Remove Member",
+      `Remove ${memberName} from this group? They must have a zero balance.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove", style: "destructive",
+          onPress: async () => {
+            setRemovingMemberId(memberId);
+            try {
+              await groups.removeMember(groupId, memberId);
+              showToast(`${memberName} removed from group`);
+              fetchData();
+            } catch (error: any) {
+              Alert.alert("Error", error.response?.data?.error || "Failed to remove member");
+            } finally {
+              setRemovingMemberId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteGroup = () => {
@@ -460,16 +537,26 @@ export default function GroupDetail() {
         // Use settlement-aware balance from the API
         const bal = apiBalances[m.userId] || 0;
         const color = bal > 0 ? GREEN : bal < 0 ? RED : colors.textSecondary;
+        const isMe = m.userId === currentUserId;
         return (
           <View key={m.userId} style={[styles.memberRow, { borderRadius: r.s(12), padding: r.s(12), marginBottom: r.s(8), backgroundColor: colors.surface }]}>
             <View style={[styles.memberAvatar, { width: r.s(38), height: r.s(38), borderRadius: r.s(12), marginRight: r.s(12) }]}>
               <Text style={{ fontWeight: "700", fontSize: r.fs(14), color: PURPLE }}>{m.user.name.charAt(0).toUpperCase()}</Text>
             </View>
-            <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{m.user.name}</Text>
+            <Text style={[styles.memberName, { fontSize: r.fs(14), color: colors.text }]}>{m.user.name}{isMe ? " (you)" : ""}</Text>
             {m.user.upiId && <Text style={[styles.upiChip, { fontSize: r.fs(10) }]}>UPI</Text>}
             <Text style={[styles.memberBal, { fontSize: r.fs(14), color }]}>
               {bal > 0 ? "+" : ""}{sym}{Math.abs(bal).toFixed(0)}
             </Text>
+            {!isMe && (
+              <TouchableOpacity
+                style={{ marginLeft: r.s(8), opacity: removingMemberId === m.id ? 0.4 : 1 }}
+                onPress={() => handleRemoveMember(m.id, m.user.name)}
+                disabled={removingMemberId === m.id}
+              >
+                <Text style={{ fontSize: r.fs(14) }}>✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
         );
       })}
@@ -731,10 +818,10 @@ export default function GroupDetail() {
               <Text style={{ color: "#92400e", fontWeight: "700", fontSize: 14 }}>🔗</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#fee2e2", borderRadius: 12, justifyContent: "center", alignItems: "center" }}
-              onPress={handleDeleteGroup}
+              style={{ paddingHorizontal: 14, paddingVertical: 12, backgroundColor: colors.surface, borderRadius: 12, justifyContent: "center", alignItems: "center" }}
+              onPress={() => { setRenameValue(group.name); setAddMemberMsg(null); setShowSettingsSheet(true); }}
             >
-              <Text style={{ color: RED, fontWeight: "700", fontSize: 14 }}>🗑️</Text>
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 14 }}>⚙️</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -877,6 +964,96 @@ export default function GroupDetail() {
               </>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* ── SETTINGS SHEET ── */}
+      <Modal visible={showSettingsSheet} transparent animationType="slide" onRequestClose={() => setShowSettingsSheet(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} activeOpacity={1} onPress={() => setShowSettingsSheet(false)} />
+        <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: insets.bottom + 16, maxHeight: "85%" }}>
+          {/* Handle */}
+          <View style={{ alignItems: "center", paddingTop: 12 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.text }}>⚙️ Group Settings</Text>
+            <TouchableOpacity onPress={() => setShowSettingsSheet(false)} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 13, color: colors.textSecondary }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 20 }}>
+            {/* ── Rename Group ── */}
+            <View style={{ marginTop: 20, marginBottom: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>RENAME GROUP</Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TextInput
+                  style={{ flex: 1, backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.text, borderWidth: 1, borderColor: colors.border }}
+                  value={renameValue}
+                  onChangeText={setRenameValue}
+                  placeholder="Group name..."
+                  placeholderTextColor={colors.textSecondary}
+                />
+                <TouchableOpacity
+                  style={{ backgroundColor: PURPLE, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12, justifyContent: "center", opacity: renamingSaving || !renameValue.trim() ? 0.6 : 1 }}
+                  onPress={handleRenameGroup}
+                  disabled={renamingSaving || !renameValue.trim()}
+                >
+                  {renamingSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Save</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* ── Add Member ── */}
+            <View style={{ marginBottom: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textSecondary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>ADD MEMBER</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>
+                Enter their email. If they don't have an account, one will be created and credentials emailed to them.
+              </Text>
+              {addMemberMsg && (
+                <View style={{ backgroundColor: addMemberMsg.type === "success" ? "#f0fdf4" : "#fff1f2", borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: addMemberMsg.type === "success" ? "#bbf7d0" : "#fecdd3" }}>
+                  <Text style={{ fontSize: 12, color: addMemberMsg.type === "success" ? "#16a34a" : "#e11d48", fontWeight: "600" }}>{addMemberMsg.text}</Text>
+                </View>
+              )}
+              <TextInput
+                style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: colors.text, borderWidth: 1, borderColor: colors.border, marginBottom: 8 }}
+                value={addMemberEmail}
+                onChangeText={(t) => { setAddMemberEmail(t); setAddMemberMsg(null); }}
+                placeholder="friend@email.com"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: colors.text, borderWidth: 1, borderColor: colors.border, marginBottom: 10 }}
+                value={addMemberName}
+                onChangeText={setAddMemberName}
+                placeholder="Their name (optional, for new accounts)"
+                placeholderTextColor={colors.textSecondary}
+              />
+              <TouchableOpacity
+                style={{ backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: addingMember || !addMemberEmail.trim() ? 0.6 : 1 }}
+                onPress={handleAddMember}
+                disabled={addingMember || !addMemberEmail.trim()}
+              >
+                {addingMember
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>+ Add Member</Text>}
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Danger Zone ── */}
+            <View style={{ marginBottom: 32, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#e11d48", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>DANGER ZONE</Text>
+              <TouchableOpacity
+                style={{ backgroundColor: "#fff1f2", borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 1, borderColor: "#fecdd3" }}
+                onPress={() => { setShowSettingsSheet(false); setTimeout(handleDeleteGroup, 300); }}
+              >
+                <Text style={{ color: "#e11d48", fontWeight: "700", fontSize: 14 }}>🗑️ Delete Group</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
 

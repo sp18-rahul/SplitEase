@@ -51,7 +51,7 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="new-group"
-          options={{ title: "New Group", presentation: "modal" }}
+          options={{ headerShown: false, presentation: "modal" }}
         />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="expenses" options={{ headerShown: false }} />

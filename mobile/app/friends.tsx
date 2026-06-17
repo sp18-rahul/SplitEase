@@ -69,6 +69,7 @@ export default function FriendsScreen() {
   const initial = user.name?.charAt(0).toUpperCase() || "?";
 
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
@@ -77,6 +78,7 @@ export default function FriendsScreen() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [sentRequests, setSentRequests] = useState<Set<number>>(new Set());
+  const [respondingTo, setRespondingTo] = useState<number | null>(null);
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -117,6 +119,19 @@ export default function FriendsScreen() {
       setSentRequests(new Set([...sentRequests].filter(id => id !== userId)));
     }
   }, [sentRequests]);
+
+  const handleRespondToRequest = useCallback(async (requestId: number, action: "accept" | "reject") => {
+    setRespondingTo(requestId);
+    try {
+      await usersApi.respondToFriendRequest(requestId, action);
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+      if (action === "accept") fetchFriends(true);
+    } catch {
+      Alert.alert("Error", `Failed to ${action} request`);
+    } finally {
+      setRespondingTo(null);
+    }
+  }, []);
 
   const fetchFriends = useCallback(async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
@@ -170,6 +185,12 @@ export default function FriendsScreen() {
       }
 
       setFriends(Array.from(friendMap.values()));
+      // Fetch pending friend requests
+      try {
+        const pendingRes = await usersApi.getPendingRequests();
+        setPendingRequests(pendingRes.data?.requests || []);
+      } catch { /* ignore */ }
+
     } catch {
       // keep existing on network error
     } finally {
@@ -311,6 +332,53 @@ export default function FriendsScreen() {
                     </Text>
                   </View>
                 </View>
+              </View>
+            )}
+
+            {/* ── PENDING FRIEND REQUESTS ── */}
+            {pendingRequests.length > 0 && (
+              <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 17, fontWeight: "800", color: colors.text }}>
+                    🔔 Pending Requests
+                  </Text>
+                  <View style={{ backgroundColor: PURPLE, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#fff" }}>{pendingRequests.length}</Text>
+                  </View>
+                </View>
+                {pendingRequests.map((req) => (
+                  <View key={req.id} style={[styles.friendCard, { backgroundColor: colors.surface, borderColor: PURPLE, borderWidth: 1.5 }]}>
+                    <View style={[styles.friendAvatar, { backgroundColor: getAvatarColor(req.fromUser?.id || req.id) }]}>
+                      <Text style={styles.friendAvatarText}>
+                        {(req.fromUser?.name || "?").charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.friendName, { color: colors.text }]} numberOfLines={1}>
+                        {req.fromUser?.name || "Someone"}
+                      </Text>
+                      <Text style={[styles.friendMutual, { color: colors.textSecondary }]}>
+                        {req.fromUser?.email || ""}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 8, flexShrink: 0 }}>
+                      <TouchableOpacity
+                        style={{ backgroundColor: PURPLE, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7, opacity: respondingTo === req.id ? 0.6 : 1 }}
+                        onPress={() => handleRespondToRequest(req.id, "accept")}
+                        disabled={respondingTo === req.id}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>✓ Accept</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ backgroundColor: colors.card, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: colors.border, opacity: respondingTo === req.id ? 0.6 : 1 }}
+                        onPress={() => handleRespondToRequest(req.id, "reject")}
+                        disabled={respondingTo === req.id}
+                      >
+                        <Text style={{ color: colors.textSecondary, fontWeight: "700", fontSize: 12 }}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
               </View>
             )}
 

@@ -21,7 +21,12 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const mobileId = request.headers.get("X-Mobile-User-Id");
+    const inviterId = session?.user?.id
+      ? parseInt(session.user.id)
+      : mobileId ? parseInt(mobileId) : null;
+
+    if (!inviterId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +52,7 @@ export async function POST(
 
     // Get the inviter's name
     const inviter = await prisma.user.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: inviterId },
       select: { name: true },
     });
     const inviterName = inviter?.name || "Someone";

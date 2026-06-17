@@ -78,8 +78,12 @@ export const users = {
     api.patch("/users/profile", data),
   updateTheme: (theme: string) =>
     api.patch("/users/theme", { theme }),
-  sendFriendRequest: (userId: number) =>
-    api.post(`/users/${userId}/friend-request`, {}),
+  sendFriendRequest: (toUserId: number) =>
+    api.post("/friends/request", { toUserId }),
+  getPendingRequests: () =>
+    api.get("/friends/request"),
+  respondToFriendRequest: (requestId: number, action: "accept" | "reject") =>
+    api.put(`/friends/request/${requestId}`, { action }),
 };
 
 // Groups
@@ -98,8 +102,10 @@ export const groups = {
     api.delete(`/groups/${groupId}`),
   addMember: (groupId: number, userId: number) =>
     api.post(`/groups/${groupId}/members`, { userId }),
-  removeMember: (groupId: number, userId: number) =>
-    api.delete(`/groups/${groupId}/members/${userId}`),
+  addMemberByEmail: (groupId: number, data: { email: string; name?: string }) =>
+    api.post(`/groups/${groupId}/members`, data),
+  removeMember: (groupId: number, memberId: number) =>
+    api.delete(`/groups/${groupId}/members/${memberId}`),
   generateInvite: (groupId: number) =>
     api.post(`/groups/${groupId}/invite`, {}),
   revokeInvite: (groupId: number) =>

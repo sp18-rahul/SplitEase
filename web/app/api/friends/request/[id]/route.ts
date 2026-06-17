@@ -3,22 +3,27 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+async function getAuthUser(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (session?.user?.email) {
+    return prisma.user.findUnique({ where: { email: session.user.email } });
+  }
+  const mobileId = req.headers.get("X-Mobile-User-Id");
+  if (mobileId) {
+    return prisma.user.findUnique({ where: { id: parseInt(mobileId) } });
+  }
+  return null;
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const currentUser = await getAuthUser(req);
 
     if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { action } = await req.json(); // 'accept' or 'reject'
